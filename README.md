@@ -13,6 +13,19 @@ Built with **Three.js**, **Neo4j**, and **Agentic AI**.
   - Employs a ReAct reasoning loop ($\text{Perceive} \rightarrow \text{Plan} \rightarrow \text{Tool Action} \rightarrow \text{Verify} \rightarrow \text{Synthesize}$).
   - Live streaming thought trace bubbles in the UI.
 
+- **🛋️ Interior Design & Bespoke Furnishing Engine**:
+  - Automatically places curated Architectural Digest furniture (curved bouclé sofas, platform beds, fluted marble kitchen islands, indoor olive trees).
+  - Preserves ergonomic human circulation clearances.
+  - Supports curated design aesthetics: **Japandi**, **Mid-Century Modern**, and **Warm Minimalist**.
+
+- **🌅 Architectural Digest Lighting & Sun Simulation**:
+  - Realistic sun angle simulation with soft contact shadows: **Golden Hour (3000K warm tone)**, **High Noon (daylight)**, and **Cozy Dusk (2700K recessed interior spotlights)**.
+  - ACES Filmic Tone Mapping and PBR procedural materials (French herringbone oak parquet, Roman clay limewash plaster, Calacatta marble).
+
+- **🚶 First-Person "Architectural Tour" Walk Mode**:
+  - Drops the camera to 1.7m (5'7" human eye level).
+  - Walk smoothly through your generated apartment using <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> keys and look around in 360°!
+
 - **🏛️ Building Code & Accessibility Audit**:
   - Automated compliance checks against **International Building Code (IBC)** and **ADA Standards**:
     - **IBC 1208.3**: Habitable room minimum area ($\ge 70\text{ sq ft} / 6.5\text{ m}^2$).

@@ -62,6 +62,8 @@ async function executeTool(toolName, args = {}) {
       return await tools.addOpeningToWall(args);
     case 'inspectProjectTopology':
       return await tools.inspectProjectTopology();
+    case 'furnishInteriorSpaces':
+      return await tools.furnishInteriorSpaces(args);
     case 'clearProject':
       return await tools.clearProject();
     default:
@@ -92,6 +94,23 @@ async function runAgentLoop(userMessage, onEvent = () => {}) {
   let rationale = '';
 
   if (
+    prompt.includes('furnish') ||
+    prompt.includes('furniture') ||
+    prompt.includes('interior') ||
+    prompt.includes('decor') ||
+    prompt.includes('sofa') ||
+    prompt.includes('bed') ||
+    prompt.includes('japandi') ||
+    prompt.includes('mid-century') ||
+    prompt.includes('minimalist')
+  ) {
+    selectedTool = 'furnishInteriorSpaces';
+    let style = 'japandi';
+    if (prompt.includes('mid-century')) style = 'mid-century';
+    if (prompt.includes('minimalist') || prompt.includes('warm')) style = 'warm-minimalist';
+    toolArgs = { style };
+    rationale = `Formulating curated Architectural Digest interior furniture package in '${style}' aesthetic with ergonomic circulation clearances.`;
+  } else if (
     prompt.includes('generate') ||
     prompt.includes('create') ||
     prompt.includes('design') ||
@@ -210,6 +229,12 @@ async function runAgentLoop(userMessage, onEvent = () => {}) {
       (toolResult.violations.length > 0
         ? `**Violations:**\n` + toolResult.violations.map(v => `- **${v.code}** [${v.severity}]: ${v.description}`).join('\n')
         : `All rooms meet IBC 1208 minimum area and ceiling clearance standards. Doorways satisfy ADA 404.2.3 accessibility width requirements.`);
+  } else if (selectedTool === 'furnishInteriorSpaces') {
+    responseText = `### 🛋️ Interior Furnishing & Styling Complete\n\n` +
+      `**Aesthetic**: *${toolResult.style.toUpperCase()}*\n\n` +
+      `Placed **${toolResult.furnitureCount} bespoke pieces** into the layout:\n` +
+      toolResult.items.map(item => `• **${item.name}** (\`${item.material}\`)`).join('\n') +
+      `\n\nCirculation paths and ergonomic clearances have been respected. Switch to **Tour Mode** to walk through the furnished interior at eye level!`;
   } else if (selectedTool === 'addOpeningToWall') {
     responseText = `Successfully placed a new **${toolArgs.type}** (${toolArgs.width}m x ${toolArgs.height}m) on the wall. The wall void has been punctured and synced with the Neo4j spatial graph.`;
   } else if (selectedTool === 'clearProject') {

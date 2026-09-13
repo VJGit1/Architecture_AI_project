@@ -18,7 +18,8 @@ const inMemoryStore = {
   rooms: new Map(),
   walls: new Map(),
   floors: new Map(),
-  openings: new Map()
+  openings: new Map(),
+  furniture: new Map()
 };
 
 function initDriver() {
@@ -119,13 +120,17 @@ async function getProjectState() {
         wallId: r.get('wallId')
       }));
 
+      const furnitureRes = await session.run(`MATCH (fu:Furniture) RETURN fu`);
+      const furniture = furnitureRes.records.map(r => r.get('fu').properties);
+
       return {
         isConnected: true,
         source: 'neo4j',
         rooms,
         floors,
         walls,
-        openings
+        openings,
+        furniture
       };
     });
   }
@@ -137,7 +142,8 @@ async function getProjectState() {
     rooms: Array.from(inMemoryStore.rooms.values()),
     floors: Array.from(inMemoryStore.floors.values()),
     walls: Array.from(inMemoryStore.walls.values()),
-    openings: Array.from(inMemoryStore.openings.values())
+    openings: Array.from(inMemoryStore.openings.values()),
+    furniture: Array.from(inMemoryStore.furniture.values())
   };
 }
 
@@ -379,12 +385,63 @@ async function updateRoomTransform(id, { width, length, height, x, y, z }) {
   return room;
 }
 
+// Add Furniture to Room
+async function createFurniture({
+  roomId,
+  name = 'Furniture',
+  type = 'sofa', // 'sofa' | 'bed' | 'table' | 'chair' | 'island' | 'plant' | 'rug'
+  width = 2.0,
+  length = 1.0,
+  height = 0.8,
+  x = 0,
+  y = 0,
+  z = 0,
+  rotationY = 0,
+  material = 'boucle',
+  style = 'japandi'
+}) {
+  const furnitureId = uuidv4();
+  const fData = {
+    id: furnitureId,
+    roomId,
+    name,
+    type,
+    width,
+    length,
+    height,
+    x,
+    y,
+    z,
+    rotationY,
+    material,
+    style
+  };
+
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run(`
+        MATCH (r:Room {id: $roomId})
+        CREATE (fu:Furniture {
+          id: $f.id, name: $f.name, type: $f.type, width: $f.width,
+          length: $f.length, height: $f.height, x: $f.x, y: $f.y, z: $f.z,
+          rotationY: $f.rotationY, material: $f.material, style: $f.style
+        })
+        CREATE (r)-[:CONTAINS_FURNITURE]->(fu)
+      `, { roomId, f: fData });
+    });
+  }
+
+  inMemoryStore.furniture.set(furnitureId, fData);
+  return fData;
+}
+
 // Clear all nodes in project
 async function clearAll() {
   inMemoryStore.rooms.clear();
   inMemoryStore.walls.clear();
   inMemoryStore.floors.clear();
   inMemoryStore.openings.clear();
+  inMemoryStore.furniture.clear();
 
   if (isConnected) {
     await withSession(async (session) => {
@@ -399,6 +456,7 @@ module.exports = {
   getProjectState,
   createRoom,
   createOpening,
+  createFurniture,
   updateRoomTransform,
   clearAll,
   inMemoryStore,
@@ -409,7 +467,8 @@ module.exports = {
       rooms: inMemoryStore.rooms.size,
       walls: inMemoryStore.walls.size,
       floors: inMemoryStore.floors.size,
-      openings: inMemoryStore.openings.size
+      openings: inMemoryStore.openings.size,
+      furniture: inMemoryStore.furniture.size
     }
   })
 };
