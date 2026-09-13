@@ -3,269 +3,547 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple 3D Architectural Planner</title>
+    <title>Autonomous Architectural AI // BIM Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        /* Basic CSS Reset */
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            color: #333;
-            overflow: hidden; /* Prevents scrollbars from appearing */
+        :root {
+            --bg-primary: #0f141c;
+            --bg-surface: rgba(22, 29, 41, 0.85);
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(6, 182, 212, 0.3);
+            --panel-width: 420px;
         }
 
-        /* Style for the 3D canvas */
-        #c {
-            display: block;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
             width: 100vw;
             height: 100vh;
         }
 
-        /* UI Panel for controls */
-        #ui-panel {
+        /* 3D Canvas Viewport */
+        #c {
             position: absolute;
-            top: 20px;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            z-index: 1;
+        }
+
+        /* Header Bar */
+        header {
+            position: absolute;
+            top: 16px;
             left: 20px;
-            background-color: rgba(255, 255, 255, 0.85);
-            padding: 15px 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            right: calc(var(--panel-width) + 40px);
+            height: 56px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 14px;
+            backdrop-filter: blur(16px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
             z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
         }
 
-        /* UI elements styling */
-        #ui-panel h2 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 18px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .button-group {
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 16px;
+            box-shadow: 0 0 16px rgba(6, 182, 212, 0.4);
+        }
+
+        .brand-text h1 {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .brand-text p {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .badge.warning {
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fbbf24;
+        }
+
+        .badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* 3D Floating Room HUD */
+        #room-labels-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .room-3d-tag {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #e2e8f0;
+            backdrop-filter: blur(8px);
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: opacity 0.2s;
+        }
+
+        .room-3d-tag span {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        /* Controls / Viewport Help HUD */
+        #viewport-hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            backdrop-filter: blur(12px);
+            z-index: 10;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .kbd-key {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 2px 6px;
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        /* Co-Pilot AI Drawer */
+        #copilot-panel {
+            position: absolute;
+            top: 16px;
+            bottom: 16px;
+            right: 20px;
+            width: var(--panel-width);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
             display: flex;
             flex-direction: column;
+            z-index: 20;
+            overflow: hidden;
+        }
+
+        .copilot-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .copilot-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .copilot-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Suggestion Chips */
+        .chips-container {
+            padding: 12px 16px 6px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            scrollbar-width: none;
+        }
+
+        .chips-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chip {
+            white-space: nowrap;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chip:hover {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        /* Chat History */
+        #chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-width: 90%;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            max-width: 95%;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-bubble {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-bubble code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 5px;
+            border-radius: 4px;
+            color: var(--accent-cyan);
+        }
+
+        /* Live Reasoning Thought Box */
+        .thought-trace {
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 3px solid var(--accent-cyan);
+            border-radius: 4px 8px 8px 4px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #38bdf8;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .thought-header {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 10px;
+        }
+
+        /* Input Bar */
+        .chat-input-container {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border-glass);
+            background: rgba(15, 23, 42, 0.5);
+            display: flex;
             gap: 10px;
         }
 
-        button {
-            padding: 10px 15px;
-            font-size: 14px;
-            border: none;
-            border-radius: 8px;
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-        
-        /* Info box for instructions */
-        #info-box {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 13px;
-            line-height: 1.6;
-            z-index: 10;
-            max-width: 250px;
-        }
-        
-        #info-box code {
-            background-color: rgba(255,255,255,0.2);
-            padding: 2px 5px;
-            border-radius: 4px;
-        }
-
-        /* Dimension display styling */
-        #dimension-display {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            z-index: 100;
-            display: none;
-            pointer-events: none;
-        }
-
-        /* Door properties panel */
-        #door-panel {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 15px 20px;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            backdrop-filter: blur(5px);
-            border: 2px solid #007bff;
-            z-index: 1000;
-            display: none;
-            min-width: 250px;
-            max-width: 300px;
-        }
-
-        #door-panel h3 {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 16px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
-        }
-
-        .door-input-group {
-            margin-bottom: 10px;
-        }
-
-        .door-input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .door-input-group input, .door-input-group select {
-            width: 100%;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-
-        .door-buttons {
-            display: flex;
-            gap: 5px;
-            margin-top: 10px;
-        }
-
-        .door-buttons button {
+        .chat-input {
             flex: 1;
-            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: white;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border: none;
+            border-radius: 10px;
+            padding: 0 16px;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-send:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 6px 12px;
             font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
         }
 
-        .door-buttons button.delete {
-            background-color: #dc3545;
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
         }
 
-        .door-buttons button.delete:hover {
-            background-color: #c82333;
+        /* Dimension Indicator Box */
+        #dimension-hud {
+            position: absolute;
+            top: 86px;
+            left: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            backdrop-filter: blur(12px);
+            z-index: 10;
+            display: none;
         }
 
+        #dimension-hud span {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Container for the 3D scene -->
+    <!-- 3D Scene Viewport -->
     <canvas id="c"></canvas>
 
-    <!-- UI Panel for adding objects -->
-    <div id="ui-panel">
-        <h2>Planner Controls</h2>
-        <div class="button-group">
-            <button id="addRoomBtn">Add Room</button>
-            <button id="addWallBtn">Add Wall</button>
-            <button id="addFloorBtn">Add Floor</button>
-            <button id="addDoorBtn" disabled>Add Door</button>
+    <!-- Floating 3D Room Badges Container -->
+    <div id="room-labels-container"></div>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand">
+            <div class="logo-icon">AI</div>
+            <div class="brand-text">
+                <h1>Architectural AI Studio</h1>
+                <p>Autonomous Semantic BIM & Spatial Graph Co-Pilot</p>
+            </div>
         </div>
-    </div>
-    
-    <!-- Info Box with user instructions -->
-    <div id="info-box">
-        <b>Controls:</b><br>
-        - <b>Left Mouse:</b> Orbit/Rotate<br>
-        - <b>Right Mouse:</b> Pan/Move View<br>
-        - <b>Scroll Wheel:</b> Zoom<br>
-        - <b>Click Object:</b> Select<br>
-        <hr style="border-color: rgba(255,255,255,0.3); margin: 8px 0;">
-        <b>Transform Keys (when selected):</b><br>
-        - <code>T</code>: Translate (Move)<br>
-        - <code>R</code>: Rotate<br>
-        - <code>S</code>: Scale (Resize)<br>
-        <hr style="border-color: rgba(255,255,255,0.3); margin: 8px 0;">
-        <b>Room Features:</b><br>
-        - <code>Add Room</code>: Creates room with floor + 4 walls<br>
-        - <code>Scale</code>: Resize room dimensions<br>
-        - <code>Real-time</code>: See dimensions while scaling<br>
-        <hr style="border-color: rgba(255,255,255,0.3); margin: 8px 0;">
-        <b>Door Features:</b><br>
-        - <code>Click Wall</code>: Select wall for door placement<br>
-        - <code>Add Door</code>: Create door on selected wall<br>
-        - <code>Click Door</code>: Edit door properties<br>
-        - <code>Walls Only</code>: Doors can only be placed on walls
+
+        <div class="header-actions">
+            <div id="db-badge" class="badge">
+                <div class="badge-dot"></div>
+                <span id="db-status-text">Probing Graph...</span>
+            </div>
+            <div id="code-badge" class="badge">
+                <div class="badge-dot"></div>
+                <span id="code-status-text">IBC Validating</span>
+            </div>
+            <button id="clear-btn" class="btn-secondary">Clear Canvas</button>
+            <button id="reset-cam-btn" class="btn-secondary">Reset View</button>
+        </div>
+    </header>
+
+    <!-- Dimension HUD (appears on object selection/transform) -->
+    <div id="dimension-hud">
+        Selected: <span id="sel-name">-</span> | Size: <span id="sel-w">0</span>m x <span id="sel-l">0</span>m | Area: <span id="sel-a">0</span> m²
     </div>
 
-    <!-- Dimension Display -->
-    <div id="dimension-display">
-        <div>Width: <span id="width-value">0</span>m</div>
-        <div>Length: <span id="length-value">0</span>m</div>
-        <div>Height: <span id="height-value">0</span>m</div>
+    <!-- Viewport Navigation Keymap HUD -->
+    <div id="viewport-hud">
+        <span><b>Navigation:</b> Left-Click to Orbit | Right-Click to Pan | Scroll to Zoom</span>
+        <span><b>Transform:</b> <span class="kbd-key">T</span> Translate | <span class="kbd-key">R</span> Rotate | <span class="kbd-key">S</span> Scale | <span class="kbd-key">Esc</span> Deselect</span>
     </div>
 
-    <!-- Door Properties Panel -->
-    <div id="door-panel">
-        <h3>Door Properties</h3>
-        <div class="door-input-group">
-            <label for="door-width">Width (m):</label>
-            <input type="number" id="door-width" step="0.1" min="0.5" max="2.0" value="0.9">
+    <!-- AI Architect Co-Pilot Drawer -->
+    <aside id="copilot-panel">
+        <div class="copilot-header">
+            <div class="copilot-title">
+                <div class="copilot-status-dot"></div>
+                <span>Architectural Agent Co-Pilot</span>
+            </div>
+            <span style="font-size: 11px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">v2.0</span>
         </div>
-        <div class="door-input-group">
-            <label for="door-height">Height (m):</label>
-            <input type="number" id="door-height" step="0.1" min="1.8" max="3.0" value="2.1">
-        </div>
-        <div class="door-input-group">
-            <label for="door-material">Material:</label>
-            <select id="door-material">
-                <option value="wood">Wood</option>
-                <option value="metal">Metal</option>
-                <option value="glass">Glass</option>
-                <option value="plastic">Plastic</option>
-            </select>
-        </div>
-        <div class="door-input-group">
-            <label for="door-type">Type:</label>
-            <select id="door-type">
-                <option value="interior">Interior</option>
-                <option value="exterior">Exterior</option>
-            </select>
-        </div>
-        <div class="door-input-group">
-            <label for="door-direction">Opening Direction:</label>
-            <select id="door-direction">
-                <option value="left">Left</option>
-                <option value="right">Right</option>
-                <option value="double">Double</option>
-            </select>
-        </div>
-        <div class="door-buttons">
-            <button id="create-door-btn">Create Door</button>
-            <button id="update-door-btn" style="display: none;">Update Door</button>
-            <button id="delete-door-btn" class="delete" style="display: none;">Delete Door</button>
-            <button id="close-door-btn" style="background-color: #6c757d;">Close</button>
-        </div>
-    </div>
 
+        <!-- Quick Action Prompt Chips -->
+        <div class="chips-container">
+            <div class="chip" data-prompt="Generate a modern 2-bedroom apartment with an open kitchen">
+                🏢 2-Bed Apartment
+            </div>
+            <div class="chip" data-prompt="Design an efficient urban studio apartment with full bath">
+                🏙️ Urban Studio
+            </div>
+            <div class="chip" data-prompt="Audit my building plan against IBC and ADA safety codes">
+                🛡️ Check IBC Codes
+            </div>
+            <div class="chip" data-prompt="Add an architectural entry door on the front wall">
+                🚪 Add Door
+            </div>
+        </div>
 
-    <!-- Import Three.js and necessary controls from a CDN -->
+        <!-- Chat History Stream -->
+        <div id="chat-messages">
+            <div class="message assistant">
+                <div class="message-bubble">
+                    👋 <b>Hello! I am your Autonomous BIM Architect.</b><br><br>
+                    Tell me what you'd like to build, or click a quick template above. I formulate topological graphs in Neo4j, pack 3D spatial boundaries, puncture openings, and verify international building codes in real time.
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Bar -->
+        <div class="chat-input-container">
+            <input type="text" id="user-input" class="chat-input" placeholder="e.g. 'Generate a 2-bedroom apartment with open kitchen'..." autocomplete="off">
+            <button id="send-btn" class="btn-send">Send</button>
+        </div>
+    </aside>
+
+    <!-- Import Three.js via ES Modules -->
     <script type="importmap">
     {
         "imports": {
@@ -280,972 +558,506 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-        // --- CORE SETUP ---
-        // Get the canvas element
+        // --- CORE THREE.JS SETUP ---
         const canvas = document.querySelector('#c');
-        // Create a WebGL renderer
         const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
-        // Create a scene to hold all objects
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf0f0f0); // Light grey background
+        scene.background = new THREE.Color(0x0a0e17);
+        scene.fog = new THREE.FogExp2(0x0a0e17, 0.015);
 
-        // --- CAMERA ---
-        // Create a perspective camera
-        const fov = 45;
-        const aspect = 2; // the canvas default
-        const near = 0.1;
-        const far = 1000;
-        const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-        camera.position.set(10, 10, 20); // Set initial camera position
+        // Camera
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(16, 18, 24);
 
-        // --- LIGHTING ---
-        // Add ambient light for general illumination
-        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
         scene.add(ambientLight);
-        // Add directional light for shadows and highlights
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        directionalLight.position.set(5, 10, 7.5);
-        scene.add(directionalLight);
 
-        // --- HELPERS ---
-        // Add a grid to the scene floor to help with placement
-        const gridHelper = new THREE.GridHelper(50, 50); // Size 50x50 with 50 divisions
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
+        sunLight.position.set(15, 30, 20);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 100;
+        sunLight.shadow.camera.left = -25;
+        sunLight.shadow.camera.right = 25;
+        sunLight.shadow.camera.top = 25;
+        sunLight.shadow.camera.bottom = -25;
+        scene.add(sunLight);
+
+        const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.4);
+        fillLight.position.set(-15, 10, -15);
+        scene.add(fillLight);
+
+        // Architectural Ground Plane & Grid
+        const gridHelper = new THREE.GridHelper(60, 60, 0x06b6d4, 0x1e293b);
+        gridHelper.position.y = -0.01;
         scene.add(gridHelper);
-        // Add axes helper to visualize the 3D space orientation
-        const axesHelper = new THREE.AxesHelper(5);
-        scene.add(axesHelper);
 
-        // --- CONTROLS ---
-        // OrbitControls allow the camera to orbit around a target.
+        // Controls
         const orbitControls = new OrbitControls(camera, renderer.domElement);
-        orbitControls.update(); // Must be called after any manual camera position changes
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+        orbitControls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent camera under floor
+        orbitControls.target.set(0, 1, 0);
+        orbitControls.update();
 
-        // TransformControls are used to manipulate objects in the scene (move, rotate, scale)
         const transformControls = new TransformControls(camera, renderer.domElement);
         scene.add(transformControls);
-        
-        // --- OBJECT CREATION ---
-        const objects = []; // Array to hold our created objects
-        let selectedWall = null; // Currently selected wall for door placement
-        let selectedDoor = null; // Currently selected door for editing
 
-        // Make the function async to use 'await'
-        async function addWall() {
-            try {
-                // Default wall properties
-                const width = 5;
-                const height = 3;
-                const thickness = 0.2;
-                const material = 'drywall';
-                const position = 'standalone';
+        transformControls.addEventListener('dragging-changed', (event) => {
+            orbitControls.enabled = !event.value;
+        });
 
-                // 1. Call your backend API endpoint first
-                const response = await fetch('/api/addWall', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ width, height, thickness, material, position })
-                });
+        // Track 3D Room Groups and Openings
+        const sceneEntities = {
+            rooms: new Map(),
+            walls: new Map(),
+            openings: new Map()
+        };
+        const interactiveObjects = [];
+        let selectedObject = null;
 
-                if (!response.ok) {
-                    throw new Error('Failed to create wall in the database.');
+        // --- ROOM 3D LABELS ---
+        const labelContainer = document.getElementById('room-labels-container');
+        const roomTags = new Map();
+
+        function updateRoomTags() {
+            sceneEntities.rooms.forEach((group, roomId) => {
+                let tag = roomTags.get(roomId);
+                if (!tag) {
+                    tag = document.createElement('div');
+                    tag.className = 'room-3d-tag';
+                    labelContainer.appendChild(tag);
+                    roomTags.set(roomId, tag);
                 }
 
-                // Get the new wall data back from the server
-                const data = await response.json();
-                console.log('Backend confirmed wall creation:', data.wall);
+                // Project room 3D center position to screen space
+                const pos = new THREE.Vector3();
+                group.getWorldPosition(pos);
+                pos.y += (group.userData.height || 2.8) + 0.4;
+                pos.project(camera);
 
-                // 2. ONLY if the fetch is successful, create the visual object
-                const geometry = new THREE.BoxGeometry(width, height, thickness); 
-                const material3D = new THREE.MeshStandardMaterial({ color: 0xcccccc });
-                const wall = new THREE.Mesh(geometry, material3D);
-                wall.position.y = height/2; 
-                
-                // Store wall data including database ID
-                wall.userData = {
-                    type: 'wall',
-                    dbId: data.wall.id,
-                    width: width,
-                    height: height,
-                    thickness: thickness,
-                    material: material,
-                    position: position
-                };
+                // Check if behind camera
+                if (pos.z > 1) {
+                    tag.style.display = 'none';
+                    return;
+                }
 
-                scene.add(wall);
-                objects.push(wall);
+                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
 
-            } catch (error) {
-                console.error("Error adding wall:", error);
-                // Optionally, show an error message to the user on screen
-            }
+                tag.style.display = 'block';
+                tag.style.left = `${x}px`;
+                tag.style.top = `${y}px`;
+                tag.innerHTML = `${group.userData.name || 'Room'} <span>${(group.userData.width * group.userData.length).toFixed(1)} m²</span>`;
+            });
         }
 
-        async function addFloor() {
-            try {
-                // Default floor dimensions
-                const width = 20;
-                const length = 20;
-                const material = 'concrete';
-                const floorNumber = 1;
+        // --- CLEAR SCENE GRAPH IN THREE.JS ---
+        function clearThreeScene() {
+            transformControls.detach();
+            selectedObject = null;
+            document.getElementById('dimension-hud').style.display = 'none';
 
-                // 1. Call backend API to create floor
-                const response = await fetch('/api/addFloor', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ width, length, material, floorNumber })
-                });
+            sceneEntities.rooms.forEach(grp => scene.remove(grp));
+            sceneEntities.walls.forEach(mesh => scene.remove(mesh));
+            sceneEntities.openings.forEach(mesh => scene.remove(mesh));
 
-                if (!response.ok) {
-                    throw new Error('Failed to create floor in the database.');
-                }
+            sceneEntities.rooms.clear();
+            sceneEntities.walls.clear();
+            sceneEntities.openings.clear();
+            interactiveObjects.length = 0;
 
-                const data = await response.json();
-                console.log('Backend confirmed floor creation:', data.floor);
-
-                // 2. Create the floor mesh
-                const geometry = new THREE.PlaneGeometry(width, length);
-                const material3D = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, side: THREE.DoubleSide });
-                const floor = new THREE.Mesh(geometry, material3D);
-                floor.rotation.x = -Math.PI / 2; // Rotate it to be flat on the grid
-                floor.userData = {
-                    type: 'floor',
-                    dbId: data.floor.id,
-                    width: width,
-                    length: length,
-                    material: material,
-                    floorNumber: floorNumber
-                };
-                
-                scene.add(floor);
-                objects.push(floor);
-
-            } catch (error) {
-                console.error("Error adding floor:", error);
-            }
+            roomTags.forEach(tag => tag.remove());
+            roomTags.clear();
         }
 
-        // Function to create a room with floor and 4 walls
-        async function addRoom() {
-            try {
-                // Default room dimensions
-                const width = 10;
-                const length = 10;
-                const height = 3;
+        // --- HYDRATE 3D SCENE FROM GRAPH STATE ---
+        function hydrateScene(state) {
+            clearThreeScene();
 
-                // 1. Call backend API to create room with separate floor and wall nodes
-                const response = await fetch('/api/addRoom', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ width, length, height })
-                });
+            if (!state.rooms || state.rooms.length === 0) return;
 
-                if (!response.ok) {
-                    throw new Error('Failed to create room in the database.');
-                }
-
-                const data = await response.json();
-                console.log('Backend confirmed room creation with components:', data);
-
-                // 2. Create the room group to hold all components
+            state.rooms.forEach(room => {
                 const roomGroup = new THREE.Group();
+                roomGroup.position.set(room.x || 0, room.y || 0, room.z || 0);
                 roomGroup.userData = {
                     type: 'room',
-                    dbId: data.room.id,
-                    width: width,
-                    length: length,
-                    height: height,
-                    floorId: data.floor.id,
-                    wallIds: data.walls.map(wall => wall.id)
+                    id: room.id,
+                    name: room.name,
+                    width: room.width,
+                    length: room.length,
+                    height: room.height
                 };
 
-                // 3. Create floor (now with its own database ID)
-                const floorGeometry = new THREE.PlaneGeometry(width, length);
-                const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513, side: THREE.DoubleSide });
-                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                // Floor Mesh
+                const floorGeo = new THREE.PlaneGeometry(room.width, room.length);
+                const floorMat = new THREE.MeshStandardMaterial({
+                    color: room.type === 'bathroom' ? 0x94a3b8 : (room.type === 'kitchen' ? 0x475569 : 0x78350f),
+                    roughness: 0.6,
+                    metalness: 0.1,
+                    side: THREE.DoubleSide
+                });
+                const floor = new THREE.Mesh(floorGeo, floorMat);
                 floor.rotation.x = -Math.PI / 2;
-                floor.position.y = 0;
-                floor.userData = {
-                    type: 'floor',
-                    dbId: data.floor.id,
-                    parentRoomId: data.room.id
-                };
+                floor.receiveShadow = true;
+                floor.userData = { type: 'floor', roomId: room.id };
                 roomGroup.add(floor);
 
-                // 4. Create 4 walls (each with its own database ID)
-                const wallThickness = 0.2;
-                const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+                // Walls with boolean door openings
+                const wallThick = 0.18;
+                const wallMat = new THREE.MeshStandardMaterial({
+                    color: 0x334155,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
 
-                // Wall 1 (front)
-                const wall1Geometry = new THREE.BoxGeometry(width, height, wallThickness);
-                const wall1 = new THREE.Mesh(wall1Geometry, wallMaterial);
-                wall1.position.set(0, height/2, length/2);
-                wall1.userData = {
-                    type: 'wall',
-                    dbId: data.walls[0].id,
-                    position: 'front',
-                    parentRoomId: data.room.id
+                // Helper to create wall mesh
+                const createWall = (wId, w, h, t, px, py, pz, rotY, posName) => {
+                    const wallGeo = new THREE.BoxGeometry(w, h, t);
+                    const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+                    wallMesh.position.set(px, py, pz);
+                    wallMesh.rotation.y = rotY;
+                    wallMesh.castShadow = true;
+                    wallMesh.receiveShadow = true;
+                    wallMesh.userData = {
+                        type: 'wall',
+                        id: wId,
+                        roomId: room.id,
+                        positionName: posName
+                    };
+                    return wallMesh;
                 };
-                roomGroup.add(wall1);
 
-                // Wall 2 (back)
-                const wall2Geometry = new THREE.BoxGeometry(width, height, wallThickness);
-                const wall2 = new THREE.Mesh(wall2Geometry, wallMaterial);
-                wall2.position.set(0, height/2, -length/2);
-                wall2.userData = {
-                    type: 'wall',
-                    dbId: data.walls[1].id,
-                    position: 'back',
-                    parentRoomId: data.room.id
-                };
-                roomGroup.add(wall2);
+                // Add 4 surrounding walls
+                const halfW = room.width / 2;
+                const halfL = room.length / 2;
+                const halfH = room.height / 2;
 
-                // Wall 3 (left)
-                const wall3Geometry = new THREE.BoxGeometry(wallThickness, height, length);
-                const wall3 = new THREE.Mesh(wall3Geometry, wallMaterial);
-                wall3.position.set(-width/2, height/2, 0);
-                wall3.userData = {
-                    type: 'wall',
-                    dbId: data.walls[2].id,
-                    position: 'left',
-                    parentRoomId: data.room.id
-                };
-                roomGroup.add(wall3);
+                const walls = room.walls && room.walls.length === 4 ? room.walls : [
+                    { id: 'w1', position: 'front' },
+                    { id: 'w2', position: 'back' },
+                    { id: 'w3', position: 'left' },
+                    { id: 'w4', position: 'right' }
+                ];
 
-                // Wall 4 (right)
-                const wall4Geometry = new THREE.BoxGeometry(wallThickness, height, length);
-                const wall4 = new THREE.Mesh(wall4Geometry, wallMaterial);
-                wall4.position.set(width/2, height/2, 0);
-                wall4.userData = {
-                    type: 'wall',
-                    dbId: data.walls[3].id,
-                    position: 'right',
-                    parentRoomId: data.room.id
-                };
-                roomGroup.add(wall4);
+                const wFront = createWall(walls[0].id, room.width, room.height, wallThick, 0, halfH, halfL, 0, 'front');
+                const wBack  = createWall(walls[1].id, room.width, room.height, wallThick, 0, halfH, -halfL, 0, 'back');
+                const wLeft  = createWall(walls[2].id, room.length, room.height, wallThick, -halfW, halfH, 0, Math.PI / 2, 'left');
+                const wRight = createWall(walls[3].id, room.length, room.height, wallThick, halfW, halfH, 0, Math.PI / 2, 'right');
 
-                // 5. Add room group to scene
+                roomGroup.add(wFront, wBack, wLeft, wRight);
+                sceneEntities.walls.set(walls[0].id, wFront);
+                sceneEntities.walls.set(walls[1].id, wBack);
+                sceneEntities.walls.set(walls[2].id, wLeft);
+                sceneEntities.walls.set(walls[3].id, wRight);
+
                 scene.add(roomGroup);
-                objects.push(roomGroup);
+                sceneEntities.rooms.set(room.id, roomGroup);
+                interactiveObjects.push(roomGroup);
+            });
 
-            } catch (error) {
-                console.error("Error adding room:", error);
-            }
-        }
+            // Render Openings (Doors / Windows)
+            if (state.openings) {
+                state.openings.forEach(op => {
+                    const opGroup = new THREE.Group();
+                    opGroup.position.set(op.x || 0, op.y || 1.05, op.z || 0);
+                    opGroup.rotation.y = op.rotationY || 0;
 
-        // Function to update room dimensions
-        function updateRoomDimensions(roomGroup, newWidth, newLength, newHeight) {
-            // Update the group's userData
-            roomGroup.userData.width = newWidth;
-            roomGroup.userData.length = newLength;
-            roomGroup.userData.height = newHeight;
+                    // Frame & Door Leaf
+                    const frameGeo = new THREE.BoxGeometry(op.width, op.height, 0.22);
+                    const frameMat = new THREE.MeshStandardMaterial({
+                        color: op.type === 'window' ? 0x38bdf8 : 0xd97706,
+                        transparent: true,
+                        opacity: op.type === 'window' ? 0.4 : 0.85,
+                        roughness: 0.3
+                    });
+                    const frameMesh = new THREE.Mesh(frameGeo, frameMat);
+                    opGroup.add(frameMesh);
 
-            // Update floor
-            const floor = roomGroup.children[0];
-            floor.geometry.dispose();
-            floor.geometry = new THREE.PlaneGeometry(newWidth, newLength);
-
-            // Update walls
-            const wallThickness = 0.2;
-            
-            // Wall 1 (front)
-            const wall1 = roomGroup.children[1];
-            wall1.geometry.dispose();
-            wall1.geometry = new THREE.BoxGeometry(newWidth, newHeight, wallThickness);
-            wall1.position.set(0, newHeight/2, newLength/2);
-
-            // Wall 2 (back)
-            const wall2 = roomGroup.children[2];
-            wall2.geometry.dispose();
-            wall2.geometry = new THREE.BoxGeometry(newWidth, newHeight, wallThickness);
-            wall2.position.set(0, newHeight/2, -newLength/2);
-
-            // Wall 3 (left)
-            const wall3 = roomGroup.children[3];
-            wall3.geometry.dispose();
-            wall3.geometry = new THREE.BoxGeometry(wallThickness, newHeight, newLength);
-            wall3.position.set(-newWidth/2, newHeight/2, 0);
-
-            // Wall 4 (right)
-            const wall4 = roomGroup.children[4];
-            wall4.geometry.dispose();
-            wall4.geometry = new THREE.BoxGeometry(wallThickness, newHeight, newLength);
-            wall4.position.set(newWidth/2, newHeight/2, 0);
-        }
-
-        // --- DOOR FUNCTIONS ---
-        
-        // Function to show door panel
-        function showDoorPanel() {
-            console.log('showDoorPanel function called');
-            
-            // Get the existing door panel
-            const doorPanel = document.getElementById('door-panel');
-            if (doorPanel) {
-                // Show the existing panel
-                doorPanel.style.display = 'block';
-                
-                // Reset form values to defaults
-                document.getElementById('door-width').value = '0.9';
-                document.getElementById('door-height').value = '2.1';
-                document.getElementById('door-material').value = 'wood';
-                document.getElementById('door-type').value = 'interior';
-                document.getElementById('door-direction').value = 'left';
-                
-                // Show create button, hide update/delete buttons
-                document.getElementById('create-door-btn').style.display = 'block';
-                document.getElementById('update-door-btn').style.display = 'none';
-                document.getElementById('delete-door-btn').style.display = 'none';
-                
-                // Add event listeners
-                addDoorPanelEventListeners();
-                
-                console.log('Existing door panel shown!');
-            } else {
-                console.error('Door panel element not found!');
-            }
-        }
-
-        // Function to create a door
-        async function createDoor() {
-            if (!selectedWall) {
-                alert('Please select a wall first by clicking on it.');
-                return;
+                    scene.add(opGroup);
+                    sceneEntities.openings.set(op.id, opGroup);
+                });
             }
 
+            updateCodeStatus();
+        }
+
+        // --- FETCH STATE ON STARTUP ---
+        async function fetchProjectState() {
             try {
-                const width = parseFloat(document.getElementById('door-width').value);
-                const height = parseFloat(document.getElementById('door-height').value);
-                const material = document.getElementById('door-material').value;
-                const type = document.getElementById('door-type').value;
-                const openingDirection = document.getElementById('door-direction').value;
+                const res = await fetch('/api/project/state');
+                const data = await res.json();
+                if (data.success) {
+                    hydrateScene(data);
+                }
+            } catch (err) {
+                console.error('Failed to load project state:', err);
+            }
+        }
 
-                // Call backend API to create door
-                const response = await fetch('/api/addDoor', {
+        // --- CHECK STATUS & CONNECTIVITY ---
+        async function updateStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                const dbText = document.getElementById('db-status-text');
+                const dbBadge = document.getElementById('db-badge');
+
+                if (data.database.isConnected) {
+                    dbBadge.className = 'badge';
+                    dbText.textContent = `Neo4j Online: ${data.database.nodeCounts.rooms} Rooms`;
+                } else {
+                    dbBadge.className = 'badge warning';
+                    dbText.textContent = `In-Memory Mode: ${data.database.nodeCounts.rooms} Rooms`;
+                }
+            } catch (err) {
+                console.warn('Backend status unreachable');
+            }
+        }
+
+        async function updateCodeStatus() {
+            try {
+                const res = await fetch('/api/agent/tool', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        wallId: selectedWall.userData.dbId,
-                        width: width,
-                        height: height,
-                        material: material,
-                        type: type,
-                        openingDirection: openingDirection
-                    })
+                    body: JSON.stringify({ tool: 'validateBuildingCodes' })
                 });
+                const data = await res.json();
+                const codeBadge = document.getElementById('code-badge');
+                const codeText = document.getElementById('code-status-text');
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to create door.');
-                }
-
-                const data = await response.json();
-                console.log('Backend confirmed door creation:', data.door);
-
-                // Create door mesh
-                const doorGeometry = new THREE.BoxGeometry(width, height, 0.05);
-                const doorMaterial = new THREE.MeshStandardMaterial({ 
-                    color: getDoorColor(material),
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const door = new THREE.Mesh(doorGeometry, doorMaterial);
-                
-                // Position door on the wall
-                const wallPosition = selectedWall.position;
-                const wallRotation = selectedWall.rotation;
-                const wallDimensions = selectedWall.geometry.parameters;
-                
-                // Calculate door position based on wall orientation
-                let doorX = wallPosition.x;
-                let doorY = wallPosition.y - (wallDimensions.height / 2) + (height / 2); // Position from bottom
-                let doorZ = wallPosition.z;
-                
-                // Adjust position based on wall type (front/back vs left/right)
-                if (selectedWall.userData.position === 'front' || selectedWall.userData.position === 'back') {
-                    doorZ = wallPosition.z + (selectedWall.userData.position === 'front' ? 0.1 : -0.1);
+                if (data.result.status === 'COMPLIANT') {
+                    codeBadge.className = 'badge';
+                    codeText.textContent = `IBC Validated (${data.result.totalChecks} checks)`;
                 } else {
-                    doorX = wallPosition.x + (selectedWall.userData.position === 'right' ? 0.1 : -0.1);
+                    codeBadge.className = 'badge warning';
+                    codeText.textContent = `⚠️ ${data.result.violationCount} Code Notice(s)`;
                 }
-                
-                door.position.set(doorX, doorY, doorZ);
-                door.rotation.copy(wallRotation);
-                
-                door.userData = {
-                    type: 'door',
-                    dbId: data.door.id,
-                    wallId: selectedWall.userData.dbId,
-                    width: width,
-                    height: height,
-                    material: material,
-                    type: type,
-                    openingDirection: openingDirection
-                };
-
-                scene.add(door);
-                objects.push(door);
-                
-                // Hide door panel
-                document.getElementById('door-panel').style.display = 'none';
-                
-                // Reset selection
-                selectedWall = null;
-                selectedDoor = null;
-                document.getElementById('addDoorBtn').disabled = true;
-                removeWallHighlighting();
-
-            } catch (error) {
-                console.error("Error creating door:", error);
-                alert('Error creating door: ' + error.message);
+            } catch (err) {
+                // Keep default
             }
         }
 
-        // Function to update a door
-        async function updateDoor() {
-            if (!selectedDoor) {
-                alert('Please select a door first.');
-                return;
+        // --- AI AGENT CHAT CLIENT ---
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        function appendMessage(role, content, thoughts = []) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+
+            let thoughtHtml = '';
+            if (thoughts && thoughts.length > 0) {
+                const items = thoughts
+                    .filter(t => t.type === 'thought' || t.type === 'planning')
+                    .map(t => `<div>• ${t.text || t.rationale}</div>`)
+                    .join('');
+                if (items) {
+                    thoughtHtml = `
+                        <div class="thought-trace">
+                            <div class="thought-header">🧠 Autonomous Reasoning Trace</div>
+                            ${items}
+                        </div>
+                    `;
+                }
             }
 
-            try {
-                const width = parseFloat(document.getElementById('door-width').value);
-                const height = parseFloat(document.getElementById('door-height').value);
-                const material = document.getElementById('door-material').value;
-                const type = document.getElementById('door-type').value;
-                const openingDirection = document.getElementById('door-direction').value;
+            // Simple markdown-style bold and code tags conversion
+            const formattedContent = content
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                .replace(/\*(.*?)\*/g, '<i>$1</i>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/\n/g, '<br>');
 
-                // Call backend API to update door
-                const response = await fetch(`/api/updateDoor/${selectedDoor.userData.dbId}`, {
-                    method: 'PUT',
+            msgDiv.innerHTML = `
+                ${thoughtHtml}
+                <div class="message-bubble">${formattedContent}</div>
+            `;
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendUserPrompt(promptText) {
+            if (!promptText || promptText.trim() === '') return;
+            const text = promptText.trim();
+            userInput.value = '';
+            appendMessage('user', text);
+
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Thinking...';
+
+            try {
+                const res = await fetch('/api/agent/chat', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        width: width,
-                        height: height,
-                        material: material,
-                        type: type,
-                        openingDirection: openingDirection
-                    })
+                    body: JSON.stringify({ message: text })
                 });
+                const data = await res.json();
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to update door.');
-                }
-
-                // Update door mesh
-                selectedDoor.geometry.dispose();
-                selectedDoor.geometry = new THREE.BoxGeometry(width, height, 0.05);
-                selectedDoor.material.color.setHex(getDoorColor(material));
-                
-                // Update userData
-                selectedDoor.userData.width = width;
-                selectedDoor.userData.height = height;
-                selectedDoor.userData.material = material;
-                selectedDoor.userData.type = type;
-                selectedDoor.userData.openingDirection = openingDirection;
-
-                console.log('Door updated successfully');
-                
-                // Hide door panel
-                document.getElementById('door-panel').style.display = 'none';
-                selectedDoor = null;
-
-            } catch (error) {
-                console.error("Error updating door:", error);
-                alert('Error updating door: ' + error.message);
-            }
-        }
-
-        // Function to delete a door
-        async function deleteDoor() {
-            if (!selectedDoor) {
-                alert('Please select a door first.');
-                return;
-            }
-
-            if (!confirm('Are you sure you want to delete this door?')) {
-                return;
-            }
-
-            try {
-                // Call backend API to delete door
-                const response = await fetch(`/api/deleteDoor/${selectedDoor.userData.dbId}`, {
-                    method: 'DELETE'
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to delete door.');
-                }
-
-                // Remove door from scene
-                scene.remove(selectedDoor);
-                const index = objects.indexOf(selectedDoor);
-                if (index > -1) {
-                    objects.splice(index, 1);
-                }
-
-                console.log('Door deleted successfully');
-                
-                // Hide door panel
-                document.getElementById('door-panel').style.display = 'none';
-                selectedDoor = null;
-
-            } catch (error) {
-                console.error("Error deleting door:", error);
-                alert('Error deleting door: ' + error.message);
-            }
-        }
-
-        // Helper function to get door color based on material
-        function getDoorColor(material) {
-            switch (material) {
-                case 'wood': return 0x8B4513;
-                case 'metal': return 0x708090;
-                case 'glass': return 0x87CEEB;
-                case 'plastic': return 0xDEB887;
-                default: return 0x8B4513;
-            }
-        }
-
-        // Helper function to highlight selected wall
-        function highlightSelectedWall(wall) {
-            // Store original material
-            if (!wall.userData.originalMaterial) {
-                wall.userData.originalMaterial = wall.material.clone();
-            }
-            
-            // Create highlight material
-            const highlightMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x00ff00, 
-                transparent: true, 
-                opacity: 0.7 
-            });
-            
-            wall.material = highlightMaterial;
-        }
-
-        // Helper function to remove wall highlighting
-        function removeWallHighlighting() {
-            objects.forEach(obj => {
-                // Check standalone walls
-                if (obj.userData && obj.userData.type === 'wall' && obj.userData.originalMaterial) {
-                    obj.material = obj.userData.originalMaterial;
-                    delete obj.userData.originalMaterial;
-                }
-                
-                // Check walls that are children of room groups
-                if (obj.userData && obj.userData.type === 'room' && obj.children) {
-                    obj.children.forEach(child => {
-                        if (child.userData && child.userData.type === 'wall' && child.userData.originalMaterial) {
-                            child.material = child.userData.originalMaterial;
-                            delete child.userData.originalMaterial;
-                        }
-                    });
-                }
-            });
-        }
-        
-        // --- UI EVENT LISTENERS ---
-        document.getElementById('addRoomBtn').addEventListener('click', addRoom);
-        document.getElementById('addWallBtn').addEventListener('click', addWall);
-        document.getElementById('addFloorBtn').addEventListener('click', addFloor);
-        
-        // Add door button event listener
-        const addDoorBtn = document.getElementById('addDoorBtn');
-        addDoorBtn.addEventListener('click', function() {
-            console.log('Add Door button clicked');
-            showDoorPanel();
-        });
-        
-        // Add event listeners for door panel buttons (these will be added when the panel is shown)
-        function addDoorPanelEventListeners() {
-            const createBtn = document.getElementById('create-door-btn');
-            const updateBtn = document.getElementById('update-door-btn');
-            const deleteBtn = document.getElementById('delete-door-btn');
-            const closeBtn = document.getElementById('close-door-btn');
-            
-            if (createBtn) {
-                createBtn.addEventListener('click', createDoor);
-            }
-            if (updateBtn) {
-                updateBtn.addEventListener('click', updateDoor);
-            }
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', deleteDoor);
-            }
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function() {
-                    document.getElementById('door-panel').style.display = 'none';
-                    selectedWall = null;
-                    selectedDoor = null;
-                    document.getElementById('addDoorBtn').disabled = true;
-                    removeWallHighlighting();
-                });
-            }
-        }
-
-        // --- Listen for when the user finishes a transformation ---
-        transformControls.addEventListener('mouseUp', async function() {
-            const object = transformControls.object; // The object being transformed
-
-            // Handle room updates
-            if (object && object.userData.type === 'room') {
-                console.log(`Finished transforming room ${object.userData.dbId}. Sending update...`);
-
-                try {
-                    // Calculate new dimensions based on scale
-                    const newWidth = object.userData.width * object.scale.x;
-                    const newLength = object.userData.length * object.scale.z;
-                    const newHeight = object.userData.height * object.scale.y;
-
-                    // Update the room dimensions in 3D
-                    updateRoomDimensions(object, newWidth, newLength, newHeight);
-
-                    // Reset scale to 1,1,1 since we've applied the changes
-                    object.scale.set(1, 1, 1);
-
-                    // Call our update endpoint with the room's ID
-                    const response = await fetch(`/api/updateRoom/${object.userData.dbId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            width: newWidth, 
-                            length: newLength, 
-                            height: newHeight 
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Server responded with an error.');
+                if (data.success) {
+                    appendMessage('assistant', data.response, data.thoughts);
+                    if (data.updatedState) {
+                        hydrateScene(data.updatedState);
                     }
-
-                    const result = await response.json();
-                    console.log('Server confirmation:', result.message);
-
-                } catch (error) {
-                    console.error("Failed to update room:", error);
+                    updateStatus();
+                } else {
+                    appendMessage('assistant', `⚠️ Error executing design plan: ${data.error}`);
                 }
+            } catch (err) {
+                appendMessage('assistant', `⚠️ Network error communicating with Agent: ${err.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
             }
-            // Handle floor updates
-            else if (object && object.userData.type === 'floor') {
-                console.log(`Finished transforming floor ${object.userData.dbId}. Sending update...`);
+        }
 
-                try {
-                    // Calculate new dimensions based on scale
-                    const newWidth = object.userData.width * object.scale.x;
-                    const newLength = object.userData.length * object.scale.z;
-
-                    // Update the floor geometry
-                    object.geometry.dispose();
-                    object.geometry = new THREE.PlaneGeometry(newWidth, newLength);
-                    
-                    // Update userData
-                    object.userData.width = newWidth;
-                    object.userData.length = newLength;
-
-                    // Reset scale to 1,1,1 since we've applied the changes
-                    object.scale.set(1, 1, 1);
-
-                    // Call our update endpoint with the floor's ID
-                    const response = await fetch(`/api/updateFloor/${object.userData.dbId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            width: newWidth, 
-                            length: newLength 
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Server responded with an error.');
-                    }
-
-                    const result = await response.json();
-                    console.log('Server confirmation:', result.message);
-
-                } catch (error) {
-                    console.error("Failed to update floor:", error);
-                }
-            }
-            // Handle wall updates
-            else if (object && object.userData.type === 'wall') {
-                console.log(`Finished transforming wall ${object.userData.dbId}. Sending update...`);
-
-                try {
-                    // Calculate new dimensions based on scale
-                    const newWidth = object.userData.width * object.scale.x;
-                    const newHeight = object.userData.height * object.scale.y;
-                    const newThickness = object.userData.thickness * object.scale.z;
-
-                    // Update the wall geometry
-                    object.geometry.dispose();
-                    object.geometry = new THREE.BoxGeometry(newWidth, newHeight, newThickness);
-                    
-                    // Update userData
-                    object.userData.width = newWidth;
-                    object.userData.height = newHeight;
-                    object.userData.thickness = newThickness;
-
-                    // Reset scale to 1,1,1 since we've applied the changes
-                    object.scale.set(1, 1, 1);
-
-                    // Call our update endpoint with the wall's ID
-                    const response = await fetch(`/api/updateWall/${object.userData.dbId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ 
-                            width: newWidth, 
-                            height: newHeight, 
-                            thickness: newThickness 
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Server responded with an error.');
-                    }
-
-                    const result = await response.json();
-                    console.log('Server confirmation:', result.message);
-
-                } catch (error) {
-                    console.error("Failed to update wall:", error);
-                }
-            }
+        sendBtn.addEventListener('click', () => sendUserPrompt(userInput.value));
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendUserPrompt(userInput.value);
         });
 
-        // --- INTERACTIVITY (RAYCASTING FOR SELECTION) ---
+        // Quick Action Chips
+        document.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const prompt = chip.getAttribute('data-prompt');
+                sendUserPrompt(prompt);
+            });
+        });
+
+        // Clear button
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            sendUserPrompt('Clear scene and reset the graph');
+        });
+
+        // Reset camera
+        document.getElementById('reset-cam-btn').addEventListener('click', () => {
+            camera.position.set(16, 18, 24);
+            orbitControls.target.set(0, 1, 0);
+            orbitControls.update();
+        });
+
+        // --- INTERACTION & TRANSFORM CONTROLS ---
         const raycaster = new THREE.Raycaster();
-        const pointer = new THREE.Vector2();
+        const mouse = new THREE.Vector2();
 
-        function onPointerClick(event) {
-            // Check if we're clicking on UI elements - if so, don't handle 3D scene clicks
-            if (event.target.closest('#ui-panel') || event.target.closest('#door-panel') || event.target.closest('#info-box')) {
+        window.addEventListener('click', (e) => {
+            if (e.target.closest('#copilot-panel') || e.target.closest('header') || e.target.closest('#viewport-hud')) {
                 return;
             }
-            
-            // Calculate pointer position in normalized device coordinates (-1 to +1) for both components
-            pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-            pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-            // Update the picking ray with the camera and pointer position
-            raycaster.setFromCamera(pointer, camera);
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
 
-            // Calculate objects intersecting the picking ray (recursive to include children)
-            const intersects = raycaster.intersectObjects(objects, true);
+            const intersects = raycaster.intersectObjects(interactiveObjects, true);
 
             if (intersects.length > 0) {
-                // Get the clicked object
-                let clickedObject = intersects[0].object;
-                
-                // Handle walls immediately (whether standalone or part of a room)
-                if (clickedObject.userData && clickedObject.userData.type === 'wall') {
-                    // Wall selected - enable door creation
-                    selectedWall = clickedObject;
-                    selectedDoor = null;
-                    document.getElementById('addDoorBtn').disabled = false;
-                    
-                    // Hide door panel if it was open for editing
-                    document.getElementById('door-panel').style.display = 'none';
-                    
-                    // Add visual feedback - highlight the selected wall
-                    highlightSelectedWall(selectedWall);
-                    
-                    console.log('Wall selected for door placement:', selectedWall.userData);
-                    return; // Exit early, don't proceed with transform controls
+                let obj = intersects[0].object;
+                while (obj.parent && obj.parent.userData && obj.parent.userData.type === 'room') {
+                    obj = obj.parent;
                 }
-                
-                // Handle doors immediately
-                if (clickedObject.userData && clickedObject.userData.type === 'door') {
-                    // Door selected for transformation (single click)
-                    selectedDoor = clickedObject;
-                    selectedWall = null;
-                    document.getElementById('addDoorBtn').disabled = true;
-                    
-                    // Use transform controls for doors (single click)
-                    transformControls.attach(clickedObject);
-                    
-                    console.log('Door selected for transformation:', selectedDoor.userData);
-                    return; // Exit early, don't proceed with other transform controls
-                }
-                
-                // For other objects (room, floor), find the top-level object
-                let objectToTransform = clickedObject;
-                
-                // If we clicked on a child of a room group, use the room group instead
-                while (objectToTransform.parent && objectToTransform.parent.userData && objectToTransform.parent.userData.type === 'room') {
-                    objectToTransform = objectToTransform.parent;
-                }
-                
-                // Use transform controls for rooms and floors
-                transformControls.attach(objectToTransform);
-                
-                // Show dimensions immediately when a room is selected
-                if (objectToTransform.userData && objectToTransform.userData.type === 'room') {
-                    const dimensionDisplay = document.getElementById('dimension-display');
-                    dimensionDisplay.style.display = 'block';
-                    
-                    // Update the dimension display with current values
-                    document.getElementById('width-value').textContent = objectToTransform.userData.width.toFixed(1);
-                    document.getElementById('length-value').textContent = objectToTransform.userData.length.toFixed(1);
-                    document.getElementById('height-value').textContent = objectToTransform.userData.height.toFixed(1);
-                }
-                
-                // Reset door selection
-                selectedWall = null;
-                selectedDoor = null;
-                document.getElementById('addDoorBtn').disabled = true;
-                document.getElementById('door-panel').style.display = 'none';
-                
-                // Remove any wall highlighting
-                removeWallHighlighting();
-            }
-            else {
-                // If we clicked on empty space, detach the controls and hide displays
+
+                selectedObject = obj;
+                transformControls.attach(obj);
+
+                const hud = document.getElementById('dimension-hud');
+                hud.style.display = 'block';
+                document.getElementById('sel-name').textContent = obj.userData.name || 'Room';
+                document.getElementById('sel-w').textContent = obj.userData.width.toFixed(1);
+                document.getElementById('sel-l').textContent = obj.userData.length.toFixed(1);
+                document.getElementById('sel-a').textContent = (obj.userData.width * obj.userData.length).toFixed(1);
+            } else {
                 transformControls.detach();
-                const dimensionDisplay = document.getElementById('dimension-display');
-                dimensionDisplay.style.display = 'none';
-                
-                // Reset selections
-                selectedWall = null;
-                selectedDoor = null;
-                document.getElementById('addDoorBtn').disabled = true;
-                document.getElementById('door-panel').style.display = 'none';
-                
-                // Remove any wall highlighting
-                removeWallHighlighting();
+                selectedObject = null;
+                document.getElementById('dimension-hud').style.display = 'none';
             }
-        }
-        
-        window.addEventListener('click', onPointerClick);
-        
-        // Double-click event listener for door editing
-        window.addEventListener('dblclick', function(event) {
-            // Check if we're clicking on UI elements - if so, don't handle 3D scene clicks
-            if (event.target.closest('#ui-panel') || event.target.closest('#door-panel') || event.target.closest('#info-box')) {
-                return;
-            }
-            
-            // Calculate pointer position in normalized device coordinates (-1 to +1) for both components
-            const pointer = new THREE.Vector2();
-            pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-            pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
 
-            // Update the picking ray with the camera and pointer position
-            raycaster.setFromCamera(pointer, camera);
+        // Sync transforms to backend when user finishes drag
+        transformControls.addEventListener('mouseUp', async () => {
+            const obj = transformControls.object;
+            if (obj && obj.userData.type === 'room') {
+                const newX = obj.position.x;
+                const newY = obj.position.y;
+                const newZ = obj.position.z;
+                const newW = obj.userData.width * obj.scale.x;
+                const newL = obj.userData.length * obj.scale.z;
+                const newH = obj.userData.height * obj.scale.y;
 
-            // Calculate objects intersecting the picking ray (recursive to include children)
-            const intersects = raycaster.intersectObjects(objects, true);
+                obj.userData.width = Number(newW.toFixed(2));
+                obj.userData.length = Number(newL.toFixed(2));
+                obj.userData.height = Number(newH.toFixed(2));
+                obj.userData.x = Number(newX.toFixed(2));
+                obj.userData.y = Number(newY.toFixed(2));
+                obj.userData.z = Number(newZ.toFixed(2));
 
-            if (intersects.length > 0) {
-                const clickedObject = intersects[0].object;
-                
-                // Handle door double-click for editing
-                if (clickedObject.userData && clickedObject.userData.type === 'door') {
-                    // Door selected for editing (double click)
-                    selectedDoor = clickedObject;
-                    selectedWall = null;
-                    document.getElementById('addDoorBtn').disabled = true;
-                    
-                    // Show door panel with current values
-                    const doorPanel = document.getElementById('door-panel');
-                    doorPanel.style.display = 'block';
-                    
-                    // Populate form with door properties
-                    document.getElementById('door-width').value = selectedDoor.userData.width;
-                    document.getElementById('door-height').value = selectedDoor.userData.height;
-                    document.getElementById('door-material').value = selectedDoor.userData.material;
-                    document.getElementById('door-type').value = selectedDoor.userData.type;
-                    document.getElementById('door-direction').value = selectedDoor.userData.openingDirection;
-                    
-                    // Show update/delete buttons
-                    document.getElementById('create-door-btn').style.display = 'none';
-                    document.getElementById('update-door-btn').style.display = 'block';
-                    document.getElementById('delete-door-btn').style.display = 'block';
-                    
-                    // Add event listeners
-                    addDoorPanelEventListeners();
-                    
-                    console.log('Door selected for editing (double-click):', selectedDoor.userData);
+                obj.scale.set(1, 1, 1);
+
+                try {
+                    await fetch(`/api/updateRoom/${obj.userData.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            width: obj.userData.width,
+                            length: obj.userData.length,
+                            height: obj.userData.height,
+                            x: obj.userData.x,
+                            y: obj.userData.y,
+                            z: obj.userData.z
+                        })
+                    });
+                    updateCodeStatus();
+                } catch (err) {
+                    console.error('Failed to sync room transform:', err);
                 }
             }
         });
-        
-        // --- KEYBOARD CONTROLS FOR TRANSFORMING ---
-        window.addEventListener('keydown', function(event) {
-            switch (event.key) {
-                case 't': // Translate (Move)
-                    transformControls.setMode('translate');
+
+        // Keyboard transformation keys
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement === userInput) return;
+            switch (e.key.toLowerCase()) {
+                case 't': transformControls.setMode('translate'); break;
+                case 'r': transformControls.setMode('rotate'); break;
+                case 's': transformControls.setMode('scale'); break;
+                case 'escape':
+                    transformControls.detach();
+                    selectedObject = null;
+                    document.getElementById('dimension-hud').style.display = 'none';
                     break;
-                case 'r': // Rotate
-                    transformControls.setMode('rotate');
-                    break;
-                case 's': // Scale
-                    transformControls.setMode('scale');
-                    break;
-                case 'Escape': // Deselect
-                     transformControls.detach();
-                     break;
-            }
-        });
-        
-        // Disable orbit controls while transforming to avoid conflicts
-        transformControls.addEventListener('dragging-changed', function(event) {
-            orbitControls.enabled = !event.value;
-            
-            // Show dimension display for rooms during transformation
-            const object = transformControls.object;
-            if (object && object.userData.type === 'room' && event.value) {
-                const dimensionDisplay = document.getElementById('dimension-display');
-                dimensionDisplay.style.display = 'block';
-            } else if (!event.value) {
-                const dimensionDisplay = document.getElementById('dimension-display');
-                dimensionDisplay.style.display = 'none';
             }
         });
 
-        // Update dimension display during transformation
-        transformControls.addEventListener('change', function() {
-            const object = transformControls.object;
-            if (object && object.userData.type === 'room') {
-                const newWidth = object.userData.width * object.scale.x;
-                const newLength = object.userData.length * object.scale.z;
-                const newHeight = object.userData.height * object.scale.y;
-                
-                document.getElementById('width-value').textContent = newWidth.toFixed(1);
-                document.getElementById('length-value').textContent = newLength.toFixed(1);
-                document.getElementById('height-value').textContent = newHeight.toFixed(1);
-            }
-        });
+        // --- RENDER & ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
 
-        // --- RENDER LOOP ---
-        function render(time) {
-            time *= 0.001; // convert time to seconds
-
-            // Handle responsive design: resize renderer to match canvas size
-            const canvas = renderer.domElement;
-            const width = canvas.clientWidth;
-            const height = canvas.clientHeight;
-            if (canvas.width !== width || canvas.height !== height) {
-                renderer.setSize(width, height, false);
-                camera.aspect = width / height;
+            // Responsive canvas resize
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            if (canvas.width !== w || canvas.height !== h) {
+                renderer.setSize(w, h, false);
+                camera.aspect = w / h;
                 camera.updateProjectionMatrix();
             }
 
-            // Render the scene
+            orbitControls.update();
+            updateRoomTags();
             renderer.render(scene, camera);
-
-            // Request the next frame
-            requestAnimationFrame(render);
         }
 
-        // Start the animation loop
-        requestAnimationFrame(render);
+        // Initialize
+        fetchProjectState();
+        updateStatus();
+        animate();
     </script>
 </body>
 </html>
