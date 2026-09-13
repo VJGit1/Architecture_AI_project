@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Architectural Digest AI // BIM Interior Studio</title>
+    <title>Maison AI // Haute Architecture & Interior Atelier</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0d14;
-            --bg-surface: rgba(18, 24, 38, 0.88);
-            --bg-card: rgba(28, 38, 58, 0.75);
-            --accent-gold: #d4af37;
-            --accent-cyan: #06b6d4;
-            --accent-blue: #3b82f6;
-            --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --border-glass: rgba(255, 255, 255, 0.1);
-            --panel-width: 420px;
+            --bg-deep: #120e16;
+            --bg-surface: rgba(28, 20, 33, 0.85);
+            --bg-card: rgba(38, 28, 45, 0.75);
+            --rose-gold: #e8b4b8;
+            --champagne: #eed9c4;
+            --blush: #f7d6d0;
+            --terracotta: #c86d51;
+            --accent-glow: rgba(232, 180, 184, 0.35);
+            --text-primary: #fdfaf7;
+            --text-secondary: #c4b5c7;
+            --border-soft: rgba(238, 217, 196, 0.18);
+            --panel-width: 430px;
         }
 
         * {
@@ -30,8 +30,8 @@
         }
 
         body {
-            font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-primary);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-deep);
             color: var(--text-primary);
             overflow: hidden;
             width: 100vw;
@@ -48,23 +48,23 @@
             z-index: 1;
         }
 
-        /* Top Header Bar */
+        /* Floating Header Bar */
         header {
             position: absolute;
-            top: 16px;
-            left: 20px;
-            right: calc(var(--panel-width) + 40px);
-            height: 60px;
+            top: 18px;
+            left: 24px;
+            right: calc(var(--panel-width) + 48px);
+            height: 64px;
             background: var(--bg-surface);
-            border: 1px solid var(--border-glass);
-            border-radius: 14px;
-            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-soft);
+            border-radius: 9999px;
+            backdrop-filter: blur(28px);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
+            padding: 0 24px;
             z-index: 10;
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 24px rgba(232, 180, 184, 0.08);
         }
 
         .brand {
@@ -74,31 +74,34 @@
         }
 
         .logo-icon {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #d4af37, #f59e0b);
-            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #e8b4b8, #d4a373);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Cinzel', serif;
+            font-family: 'Cormorant Garamond', serif;
             font-weight: 700;
-            color: #0f172a;
-            font-size: 18px;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+            color: #1a101f;
+            font-size: 20px;
+            box-shadow: 0 0 20px var(--accent-glow);
         }
 
         .brand-text h1 {
-            font-size: 15px;
-            font-weight: 700;
-            letter-spacing: 0.8px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: 1.2px;
             text-transform: uppercase;
+            color: var(--champagne);
         }
 
         .brand-text p {
             font-size: 11px;
             color: var(--text-secondary);
-            font-family: 'JetBrains Mono', monospace;
+            font-weight: 300;
+            letter-spacing: 0.5px;
         }
 
         .header-actions {
@@ -111,77 +114,76 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 6px 14px;
+            border-radius: 9999px;
             font-size: 11px;
             font-family: 'JetBrains Mono', monospace;
             font-weight: 500;
-            background: rgba(16, 185, 129, 0.12);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #34d399;
-        }
-
-        .badge.warning {
-            background: rgba(245, 158, 11, 0.12);
-            border-color: rgba(245, 158, 11, 0.3);
-            color: #fbbf24;
+            background: rgba(232, 180, 184, 0.12);
+            border: 1px solid rgba(232, 180, 184, 0.3);
+            color: var(--champagne);
         }
 
         .badge-dot {
-            width: 7px;
-            height: 7px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            background-color: currentColor;
-            box-shadow: 0 0 8px currentColor;
+            background-color: var(--rose-gold);
+            box-shadow: 0 0 10px var(--rose-gold);
         }
 
-        /* Lighting Mode Selector */
         .lighting-select {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--border-glass);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-soft);
             color: var(--text-primary);
-            border-radius: 8px;
-            padding: 6px 10px;
+            border-radius: 9999px;
+            padding: 7px 14px;
             font-size: 12px;
             font-family: inherit;
             outline: none;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lighting-select:hover {
+            border-color: var(--rose-gold);
         }
 
         .btn-tour {
-            background: linear-gradient(135deg, #d4af37, #b45309);
+            background: linear-gradient(135deg, #e8b4b8, #d4a373);
             border: none;
-            color: #0f172a;
+            color: #1a101f;
             font-weight: 700;
-            border-radius: 8px;
+            border-radius: 9999px;
+            padding: 8px 18px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 18px var(--accent-glow);
+        }
+
+        .btn-tour:hover {
+            transform: translateY(-1px) scale(1.02);
+            box-shadow: 0 6px 24px rgba(232, 180, 184, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-soft);
+            color: var(--text-secondary);
+            border-radius: 9999px;
             padding: 7px 14px;
             font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 0 14px rgba(212, 175, 55, 0.3);
-        }
-
-        .btn-tour:hover {
-            transform: scale(1.03);
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--border-glass);
-            color: var(--text-primary);
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
         }
 
         /* 3D Floating Room Badges */
@@ -198,39 +200,41 @@
         .room-3d-tag {
             position: absolute;
             transform: translate(-50%, -100%);
-            background: rgba(15, 23, 42, 0.88);
-            border: 1px solid rgba(212, 175, 55, 0.4);
-            border-radius: 8px;
-            padding: 5px 10px;
+            background: rgba(28, 20, 33, 0.9);
+            border: 1px solid rgba(232, 180, 184, 0.4);
+            border-radius: 20px;
+            padding: 6px 14px;
             font-size: 11px;
-            font-family: 'JetBrains Mono', monospace;
-            color: #e2e8f0;
-            backdrop-filter: blur(8px);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #fdfaf7;
+            backdrop-filter: blur(12px);
             white-space: nowrap;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
         }
 
         .room-3d-tag span {
-            color: #facc15;
+            color: var(--rose-gold);
             font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            margin-left: 4px;
         }
 
         /* Tour Overlay HUD */
         #tour-hud {
             position: absolute;
-            top: 90px;
+            top: 98px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid #d4af37;
-            border-radius: 30px;
-            padding: 8px 24px;
+            background: rgba(28, 20, 33, 0.95);
+            border: 1px solid var(--rose-gold);
+            border-radius: 9999px;
+            padding: 10px 28px;
             font-size: 13px;
-            color: #fef08a;
+            color: var(--champagne);
             display: none;
             z-index: 100;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(16px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px var(--accent-glow);
             align-items: center;
             gap: 16px;
         }
@@ -238,27 +242,27 @@
         /* Viewport Navigation HUD */
         #viewport-hud {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            bottom: 24px;
+            left: 24px;
             background: var(--bg-surface);
-            border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            padding: 12px 16px;
+            border: 1px solid var(--border-soft);
+            border-radius: 20px;
+            padding: 12px 20px;
             font-size: 12px;
             color: var(--text-secondary);
-            backdrop-filter: blur(14px);
+            backdrop-filter: blur(16px);
             z-index: 10;
             display: flex;
-            gap: 16px;
+            gap: 18px;
             align-items: center;
         }
 
         .kbd-key {
             background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            padding: 2px 6px;
-            color: white;
+            border-radius: 6px;
+            padding: 2px 7px;
+            color: var(--champagne);
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
         }
@@ -266,37 +270,37 @@
         /* Dimension Indicator Box */
         #dimension-hud {
             position: absolute;
-            top: 90px;
-            left: 20px;
+            top: 96px;
+            left: 24px;
             background: var(--bg-surface);
-            border: 1px solid var(--border-glass);
-            border-radius: 10px;
-            padding: 10px 14px;
+            border: 1px solid var(--border-soft);
+            border-radius: 16px;
+            padding: 12px 18px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
             color: var(--text-secondary);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
             z-index: 10;
             display: none;
         }
 
         #dimension-hud span {
-            color: #facc15;
+            color: var(--rose-gold);
             font-weight: 600;
         }
 
-        /* Co-Pilot AI Drawer */
+        /* Co-Pilot AI Atelier Panel */
         #copilot-panel {
             position: absolute;
-            top: 16px;
-            bottom: 16px;
-            right: 20px;
+            top: 18px;
+            bottom: 18px;
+            right: 24px;
             width: var(--panel-width);
             background: var(--bg-surface);
-            border: 1px solid var(--border-glass);
-            border-radius: 16px;
-            backdrop-filter: blur(24px);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+            border: 1px solid var(--border-soft);
+            border-radius: 28px;
+            backdrop-filter: blur(32px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgba(232, 180, 184, 0.06);
             display: flex;
             flex-direction: column;
             z-index: 20;
@@ -304,39 +308,45 @@
         }
 
         .copilot-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-glass);
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-soft);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: rgba(15, 23, 42, 0.4);
+            background: rgba(18, 14, 22, 0.5);
         }
 
         .copilot-title {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+        }
+
+        .copilot-title h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 18px;
             font-weight: 600;
-            font-size: 14px;
+            letter-spacing: 0.8px;
+            color: var(--champagne);
         }
 
         .copilot-status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #d4af37;
-            box-shadow: 0 0 12px #d4af37;
-            animation: pulse 2s infinite;
+            background: var(--rose-gold);
+            box-shadow: 0 0 14px var(--rose-gold);
+            animation: pulse 2.5s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.9); }
         }
 
-        /* Suggestion Chips */
+        /* Aesthetic Suggestion Chips */
         .chips-container {
-            padding: 12px 16px 6px;
+            padding: 14px 20px 8px;
             display: flex;
             gap: 8px;
             overflow-x: auto;
@@ -350,22 +360,23 @@
 
         .chip {
             white-space: nowrap;
-            padding: 6px 12px;
+            padding: 8px 16px;
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-glass);
-            border-radius: 16px;
+            border: 1px solid var(--border-soft);
+            border-radius: 9999px;
             font-size: 11px;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
             display: flex;
             align-items: center;
             gap: 6px;
+            font-weight: 500;
         }
 
         .chip:hover {
-            background: rgba(212, 175, 55, 0.15);
-            border-color: #d4af37;
+            background: rgba(232, 180, 184, 0.18);
+            border-color: var(--rose-gold);
             color: var(--text-primary);
             transform: translateY(-1px);
         }
@@ -373,11 +384,11 @@
         /* Chat History */
         #chat-messages {
             flex: 1;
-            padding: 16px;
+            padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 16px;
         }
 
         .message {
@@ -399,25 +410,26 @@
 
         .message.assistant {
             align-self: flex-start;
-            max-width: 95%;
+            max-width: 96%;
         }
 
         .message-bubble {
-            padding: 12px 16px;
-            border-radius: 14px;
+            padding: 14px 18px;
+            border-radius: 20px;
             font-size: 13px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .message.user .message-bubble {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            background: linear-gradient(135deg, #c86d51, #b55d43);
             color: white;
             border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 16px rgba(200, 109, 81, 0.3);
         }
 
         .message.assistant .message-bubble {
             background: var(--bg-card);
-            border: 1px solid var(--border-glass);
+            border: 1px solid var(--border-soft);
             color: var(--text-primary);
             border-bottom-left-radius: 4px;
         }
@@ -425,22 +437,22 @@
         .message-bubble code {
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            background: rgba(0, 0, 0, 0.35);
-            padding: 2px 5px;
-            border-radius: 4px;
-            color: #38bdf8;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 6px;
+            color: var(--champagne);
         }
 
-        /* Live Reasoning Thought Box */
+        /* Live Thought Trace */
         .thought-trace {
-            background: rgba(15, 23, 42, 0.7);
-            border-left: 3px solid #d4af37;
-            border-radius: 4px 8px 8px 4px;
-            padding: 8px 12px;
+            background: rgba(18, 14, 22, 0.7);
+            border-left: 3px solid var(--rose-gold);
+            border-radius: 6px 14px 14px 6px;
+            padding: 10px 14px;
             margin-bottom: 8px;
             font-size: 11px;
             font-family: 'JetBrains Mono', monospace;
-            color: #facc15;
+            color: var(--rose-gold);
             display: flex;
             flex-direction: column;
             gap: 4px;
@@ -452,52 +464,54 @@
             align-items: center;
             gap: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
             font-size: 10px;
+            color: var(--champagne);
         }
 
         /* Input Bar */
         .chat-input-container {
-            padding: 14px 16px;
-            border-top: 1px solid var(--border-glass);
-            background: rgba(15, 23, 42, 0.5);
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-soft);
+            background: rgba(18, 14, 22, 0.6);
             display: flex;
-            gap: 10px;
+            gap: 12px;
         }
 
         .chat-input {
             flex: 1;
             background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-glass);
-            border-radius: 10px;
-            padding: 10px 14px;
+            border: 1px solid var(--border-soft);
+            border-radius: 9999px;
+            padding: 12px 20px;
             color: white;
             font-family: inherit;
             font-size: 13px;
             outline: none;
-            transition: border-color 0.2s;
+            transition: all 0.25s;
         }
 
         .chat-input:focus {
-            border-color: #d4af37;
-            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+            border-color: var(--rose-gold);
+            box-shadow: 0 0 0 3px rgba(232, 180, 184, 0.2);
         }
 
         .btn-send {
-            background: linear-gradient(135deg, #d4af37, #b45309);
+            background: linear-gradient(135deg, #e8b4b8, #d4a373);
             border: none;
-            border-radius: 10px;
-            padding: 0 18px;
-            color: #0f172a;
+            border-radius: 9999px;
+            padding: 0 22px;
+            color: #1a101f;
             font-weight: 700;
             font-size: 13px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
+            box-shadow: 0 4px 14px var(--accent-glow);
         }
 
         .btn-send:hover {
-            opacity: 0.95;
-            transform: scale(1.02);
+            transform: scale(1.03);
+            box-shadow: 0 6px 20px rgba(232, 180, 184, 0.5);
         }
 
         .btn-send:disabled {
@@ -508,35 +522,35 @@
 </head>
 <body>
 
-    <!-- 3D Scene Viewport -->
+    <!-- 3D Scene Canvas -->
     <canvas id="c"></canvas>
 
-    <!-- Floating 3D Room Badges Container -->
+    <!-- Floating 3D Room Badges -->
     <div id="room-labels-container"></div>
 
-    <!-- First-Person Walkthrough HUD (appears in Tour Mode) -->
+    <!-- First-Person Walkthrough Tour HUD -->
     <div id="tour-hud">
-        <span>🚶 <b>Tour Mode Active:</b> Use <span class="kbd-key">W</span> <span class="kbd-key">A</span> <span class="kbd-key">S</span> <span class="kbd-key">D</span> to walk, Mouse to look around.</span>
-        <button id="exit-tour-btn" class="btn-secondary" style="padding: 3px 8px; font-size: 11px;">Exit Tour (Esc)</button>
+        <span>🚶 <b>Atelier Tour Active:</b> Use <span class="kbd-key">W</span> <span class="kbd-key">A</span> <span class="kbd-key">S</span> <span class="kbd-key">D</span> to walk, Mouse to explore.</span>
+        <button id="exit-tour-btn" class="btn-secondary" style="padding: 4px 12px; font-size: 11px;">Exit Tour (Esc)</button>
     </div>
 
-    <!-- Header Navigation -->
+    <!-- Haute Header -->
     <header>
         <div class="brand">
-            <div class="logo-icon">AD</div>
+            <div class="logo-icon">M</div>
             <div class="brand-text">
-                <h1>Architectural AI Studio</h1>
-                <p>BIM Knowledge Graph & High-End Interior Co-Pilot</p>
+                <h1>Maison AI Atelier</h1>
+                <p>Haute Architecture & Curated Interior Design</p>
             </div>
         </div>
 
         <div class="header-actions">
-            <select id="lighting-mode" class="lighting-select" title="Sunlight & Atmosphere">
-                <option value="golden">🌅 Golden Hour (3000K)</option>
-                <option value="noon">☀️ High Noon (Daylight)</option>
-                <option value="dusk">🌙 Cozy Dusk (Interior Spotlights)</option>
+            <select id="lighting-mode" class="lighting-select" title="Sunlight & Ambiance">
+                <option value="golden">🌸 Champagne Sunrise (3000K)</option>
+                <option value="noon">☀️ Parisian Daylight</option>
+                <option value="dusk">🕯️ Velvet Candlelight (Evening)</option>
             </select>
-            <button id="tour-btn" class="btn-tour" title="Drop to human eye level and walk through">
+            <button id="tour-btn" class="btn-tour" title="Walk through your space at human eye level">
                 🚶 Tour Interior
             </button>
             <div id="db-badge" class="badge">
@@ -557,32 +571,32 @@
         Selected: <span id="sel-name">-</span> | Size: <span id="sel-w">0</span>m x <span id="sel-l">0</span>m | Area: <span id="sel-a">0</span> m²
     </div>
 
-    <!-- Viewport Navigation Keymap HUD -->
+    <!-- Navigation Keymap HUD -->
     <div id="viewport-hud">
         <span><b>Orbit:</b> Left-Click to Rotate | Right-Click to Pan | Scroll to Zoom</span>
         <span><b>Transform:</b> <span class="kbd-key">T</span> Move | <span class="kbd-key">R</span> Rotate | <span class="kbd-key">S</span> Scale | <span class="kbd-key">Esc</span> Deselect</span>
     </div>
 
-    <!-- AI Architect Co-Pilot Drawer -->
+    <!-- AI Atelier Co-Pilot Drawer -->
     <aside id="copilot-panel">
         <div class="copilot-header">
             <div class="copilot-title">
                 <div class="copilot-status-dot"></div>
-                <span>Architectural Digest Co-Pilot</span>
+                <h2>Interior Design Atelier</h2>
             </div>
-            <span style="font-size: 11px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">v2.5 Interior Edition</span>
+            <span style="font-size: 11px; color: var(--rose-gold); font-family: 'JetBrains Mono', monospace;">Atelier v3.0</span>
         </div>
 
-        <!-- Quick Action Prompt Chips -->
+        <!-- Suggestion Chips -->
         <div class="chips-container">
             <div class="chip" data-prompt="Generate a 2-bedroom luxury residence and furnish it in Japandi aesthetic">
-                🌿 Japandi Residence
+                🌸 Japandi Suite
+            </div>
+            <div class="chip" data-prompt="Furnish this apartment in warm minimalist style with bouclé and travertine decor">
+                🕯️ Warm Minimalist
             </div>
             <div class="chip" data-prompt="Furnish this apartment in Mid-Century Modern style with walnut and leather">
-                🪵 Mid-Century Interior
-            </div>
-            <div class="chip" data-prompt="Furnish spaces with warm minimalist bouclé and travertine decor">
-                🏛️ Warm Minimalist
+                🪵 Mid-Century
             </div>
             <div class="chip" data-prompt="Audit my building plan against IBC and ADA safety codes">
                 🛡️ Check IBC Codes
@@ -596,17 +610,17 @@
         <div id="chat-messages">
             <div class="message assistant">
                 <div class="message-bubble">
-                    ✨ <b>Welcome to your Architectural Digest BIM Studio.</b><br><br>
-                    I design intelligent floor plans with Neo4j spatial topology, furnish spaces with curated designer furniture, and render photorealistic materials with golden hour sunlight.<br><br>
-                    Try asking: <i>"Generate a 2-bedroom apartment and furnish it in Japandi style"</i> or click a prompt above!
+                    ✨ <b>Welcome to Maison AI Atelier.</b><br><br>
+                    I curate luxury architectural floor plans, compose bespoke designer interiors (curved bouclé sofas, travertine coffee tables, fluted marble islands), and illuminate spaces with warm champagne sunlight.<br><br>
+                    Click a styling prompt above or tell me: <i>"Create a Parisian apartment and furnish it with Japandi decor."</i>
                 </div>
             </div>
         </div>
 
         <!-- Input Bar -->
         <div class="chat-input-container">
-            <input type="text" id="user-input" class="chat-input" placeholder="e.g. 'Furnish this space with Japandi bouclé furniture'..." autocomplete="off">
-            <button id="send-btn" class="btn-send">Send</button>
+            <input type="text" id="user-input" class="chat-input" placeholder="Ask Maison AI to curate your space..." autocomplete="off">
+            <button id="send-btn" class="btn-send">Design</button>
         </div>
     </aside>
 
@@ -632,33 +646,31 @@
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.05;
+        renderer.toneMappingExposure = 1.08;
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0d14);
-        scene.fog = new THREE.FogExp2(0x0a0d14, 0.012);
+        scene.background = new THREE.Color(0x120e16);
+        scene.fog = new THREE.FogExp2(0x120e16, 0.012);
 
-        // Perspective Camera
+        // Camera
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(16, 18, 24);
 
-        // --- PROCEDURAL ARCHITECTURAL TEXTURES (PBR) ---
+        // --- PROCEDURAL ARCHITECTURAL TEXTURES ---
         function createHerringboneTexture() {
             const size = 512;
             const cv = document.createElement('canvas');
             cv.width = size; cv.height = size;
             const ctx = cv.getContext('2d');
-            ctx.fillStyle = '#b8926a'; // Warm French oak base
+            ctx.fillStyle = '#c49e78'; // Soft French Blonde Oak
             ctx.fillRect(0, 0, size, size);
 
-            // Wood plank lines
-            ctx.strokeStyle = '#855d37';
+            ctx.strokeStyle = '#9e7854';
             ctx.lineWidth = 3;
             for (let x = 0; x < size; x += 32) {
                 for (let y = 0; y < size; y += 64) {
                     ctx.strokeRect(x, y, 32, 64);
-                    // Wood grain streaks
-                    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+                    ctx.fillStyle = 'rgba(0,0,0,0.035)';
                     ctx.fillRect(x + 4, y + 2, 24, 2);
                     ctx.fillRect(x + 8, y + 20, 16, 2);
                 }
@@ -675,12 +687,11 @@
             const cv = document.createElement('canvas');
             cv.width = size; cv.height = size;
             const ctx = cv.getContext('2d');
-            ctx.fillStyle = '#e2e8f0'; // Limewash off-white
+            ctx.fillStyle = '#f5efe8'; // Soft Italian Limewash
             ctx.fillRect(0, 0, size, size);
 
-            // Subtle stucco noise
             for (let i = 0; i < 4000; i++) {
-                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)';
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.06)';
                 ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
             }
             const texture = new THREE.CanvasTexture(cv);
@@ -695,19 +706,18 @@
             const cv = document.createElement('canvas');
             cv.width = size; cv.height = size;
             const ctx = cv.getContext('2d');
-            ctx.fillStyle = '#f8fafc'; // Calacatta white base
+            ctx.fillStyle = '#fcfaf8'; // Calacatta Gold
             ctx.fillRect(0, 0, size, size);
 
-            // Organic gold/grey marble veins
-            ctx.strokeStyle = 'rgba(100, 116, 139, 0.25)';
+            ctx.strokeStyle = 'rgba(180, 160, 150, 0.22)';
             ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.moveTo(0, 100);
             ctx.bezierCurveTo(150, 80, 250, 300, 512, 240);
             ctx.stroke();
 
-            ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)'; // Gold vein
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(232, 180, 184, 0.35)'; // Rose-gold vein
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
             ctx.moveTo(50, 0);
             ctx.bezierCurveTo(200, 220, 350, 150, 480, 512);
@@ -721,11 +731,11 @@
         const plasterTexture = createPlasterTexture();
         const marbleTexture = createMarbleTexture();
 
-        // --- LIGHTING & SUN STUDY SIMULATION ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+        // --- SUN STUDY & AMBIANCE SIMULATION ---
+        const ambientLight = new THREE.AmbientLight(0xfff5ea, 0.95);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xfffaed, 1.8);
+        const sunLight = new THREE.DirectionalLight(0xffeedb, 1.9);
         sunLight.position.set(18, 14, 18);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 2048;
@@ -739,35 +749,34 @@
         sunLight.shadow.bias = -0.0005;
         scene.add(sunLight);
 
-        const skyFillLight = new THREE.DirectionalLight(0x93c5fd, 0.4);
+        const skyFillLight = new THREE.DirectionalLight(0xe8b4b8, 0.35); // Soft rose sky fill
         skyFillLight.position.set(-15, 12, -15);
         scene.add(skyFillLight);
 
-        // Ceiling Recessed Spotlights Group
         const spotlightGroup = new THREE.Group();
         scene.add(spotlightGroup);
 
         function setLightingMode(mode) {
             if (mode === 'golden') {
-                scene.background.setHex(0x0a0d14);
-                sunLight.color.setHex(0xffaa44); // Warm golden light
+                scene.background.setHex(0x120e16);
+                sunLight.color.setHex(0xffcaa2); // Champagne Sunrise
                 sunLight.intensity = 2.2;
-                sunLight.position.set(22, 9, 20); // Low angle
-                ambientLight.intensity = 0.7;
-                renderer.toneMappingExposure = 1.1;
+                sunLight.position.set(22, 10, 20);
+                ambientLight.intensity = 0.8;
+                renderer.toneMappingExposure = 1.12;
                 spotlightGroup.visible = false;
             } else if (mode === 'noon') {
-                scene.background.setHex(0x0f172a);
-                sunLight.color.setHex(0xffffff); // Pure white sunlight
-                sunLight.intensity = 1.8;
-                sunLight.position.set(12, 35, 15); // Overhead
-                ambientLight.intensity = 1.0;
-                renderer.toneMappingExposure = 1.0;
+                scene.background.setHex(0x18131e);
+                sunLight.color.setHex(0xfff8f2); // Pure Parisian Light
+                sunLight.intensity = 1.9;
+                sunLight.position.set(12, 35, 15);
+                ambientLight.intensity = 1.05;
+                renderer.toneMappingExposure = 1.02;
                 spotlightGroup.visible = false;
             } else if (mode === 'dusk') {
-                scene.background.setHex(0x030712);
-                sunLight.color.setHex(0x38bdf8); // Blue twilight fill
-                sunLight.intensity = 0.4;
+                scene.background.setHex(0x0a060e);
+                sunLight.color.setHex(0x818cf8);
+                sunLight.intensity = 0.35;
                 ambientLight.intensity = 0.3;
                 renderer.toneMappingExposure = 1.25;
                 spotlightGroup.visible = true;
@@ -778,8 +787,8 @@
             setLightingMode(e.target.value);
         });
 
-        // Architectural Ground Plane & Grid
-        const gridHelper = new THREE.GridHelper(60, 60, 0xd4af37, 0x1e293b);
+        // Delicate Champagne Ground Grid
+        const gridHelper = new THREE.GridHelper(60, 60, 0xe8b4b8, 0x2d1f33);
         gridHelper.position.y = -0.01;
         scene.add(gridHelper);
 
@@ -799,7 +808,7 @@
             orbitControls.enabled = !event.value;
         });
 
-        // State Entities
+        // Entities
         const sceneEntities = {
             rooms: new Map(),
             walls: new Map(),
@@ -809,7 +818,7 @@
         const interactiveObjects = [];
         let selectedObject = null;
 
-        // --- FIRST-PERSON TOUR MODE (WALKTHROUGH) ---
+        // --- FIRST-PERSON WALKTHROUGH ---
         let isTourMode = false;
         const walkSpeed = 0.12;
         const keysPressed = {};
@@ -825,7 +834,6 @@
             savedCameraPos.copy(camera.position);
             savedTarget.copy(orbitControls.target);
 
-            // Find first room center or default to (0, 1.7, 0)
             let startX = 0, startZ = 0;
             if (sceneEntities.rooms.size > 0) {
                 const firstRoom = sceneEntities.rooms.values().next().value;
@@ -833,7 +841,7 @@
                 startZ = firstRoom.position.z;
             }
 
-            camera.position.set(startX, 1.7, startZ); // 1.7m = 5'7" eye height
+            camera.position.set(startX, 1.7, startZ);
             camera.lookAt(startX, 1.7, startZ - 5);
             tourHud.style.display = 'flex';
         }
@@ -875,7 +883,7 @@
             if (keysPressed['a'] || keysPressed['arrowleft']) camera.position.addScaledVector(right, walkSpeed);
             if (keysPressed['d'] || keysPressed['arrowright']) camera.position.addScaledVector(right, -walkSpeed);
 
-            camera.position.y = 1.7; // Maintain fixed eye level
+            camera.position.y = 1.7;
         }
 
         // --- ROOM 3D LABELS ---
@@ -934,7 +942,6 @@
             sceneEntities.furniture.clear();
             interactiveObjects.length = 0;
 
-            // Clear spotlights
             while (spotlightGroup.children.length > 0) {
                 spotlightGroup.remove(spotlightGroup.children[0]);
             }
@@ -943,7 +950,7 @@
             roomTags.clear();
         }
 
-        // --- PROCEDURAL BESPOKE FURNITURE BUILDER ---
+        // --- CURATED BESPOKE FURNITURE GENERATOR ---
         function buildFurnitureMesh(item) {
             const group = new THREE.Group();
             group.position.set(item.x || 0, item.y || 0, item.z || 0);
@@ -954,28 +961,28 @@
             const h = item.height || 0.8;
 
             if (item.type === 'sofa') {
-                // Curved Bouclé Sofa
-                const seatGeo = new THREE.BoxGeometry(w, 0.35, l);
+                // Curved Bouclé Cloud Sofa
+                const seatGeo = new THREE.BoxGeometry(w, 0.38, l);
                 const seatMat = new THREE.MeshStandardMaterial({
-                    color: item.material === 'cognac-leather' ? 0x9a3412 : 0xf1f5f9,
-                    roughness: 0.9,
-                    metalness: 0.05
+                    color: 0xfdfaf7, // Cream Bouclé
+                    roughness: 0.95,
+                    metalness: 0.02
                 });
                 const seat = new THREE.Mesh(seatGeo, seatMat);
                 seat.castShadow = true;
                 seat.receiveShadow = true;
                 group.add(seat);
 
-                // Backrest
-                const backGeo = new THREE.BoxGeometry(w, 0.45, 0.3);
+                // Backrest with soft curve
+                const backGeo = new THREE.BoxGeometry(w, 0.48, 0.32);
                 const back = new THREE.Mesh(backGeo, seatMat);
-                back.position.set(0, 0.35, -l / 2 + 0.15);
+                back.position.set(0, 0.38, -l / 2 + 0.16);
                 back.castShadow = true;
                 group.add(back);
 
-                // Brass legs
-                const legMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 });
-                const legGeo = new THREE.CylinderGeometry(0.03, 0.02, 0.15);
+                // Rose-Gold / Brass Feet
+                const legMat = new THREE.MeshStandardMaterial({ color: 0xe8b4b8, metalness: 0.85, roughness: 0.2 });
+                const legGeo = new THREE.CylinderGeometry(0.025, 0.015, 0.15);
                 [-w/2 + 0.15, w/2 - 0.15].forEach(lx => {
                     [-l/2 + 0.15, l/2 - 0.15].forEach(lz => {
                         const leg = new THREE.Mesh(legGeo, legMat);
@@ -983,47 +990,54 @@
                         group.add(leg);
                     });
                 });
+
+                // Velvet Blush Cushion
+                const cushionMat = new THREE.MeshStandardMaterial({ color: 0xe8b4b8, roughness: 0.85 });
+                const cushionGeo = new THREE.BoxGeometry(0.5, 0.12, 0.45);
+                const cushion = new THREE.Mesh(cushionGeo, cushionMat);
+                cushion.position.set(w / 3, 0.25, 0);
+                cushion.rotation.y = 0.2;
+                group.add(cushion);
             } else if (item.type === 'bed') {
-                // Platform Bed Frame
-                const frameMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 });
+                // Blonde Oak Platform Bed
+                const frameMat = new THREE.MeshStandardMaterial({ color: 0xc49e78, roughness: 0.7 });
                 const frameGeo = new THREE.BoxGeometry(w, 0.2, l);
                 const frame = new THREE.Mesh(frameGeo, frameMat);
                 frame.castShadow = true;
                 group.add(frame);
 
-                // Mattress with Crisp Linen
-                const matMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9 });
-                const matGeo = new THREE.BoxGeometry(w - 0.1, 0.25, l - 0.1);
+                // Crisp Draped Linen Mattress
+                const matMat = new THREE.MeshStandardMaterial({ color: 0xfdfaf7, roughness: 0.95 });
+                const matGeo = new THREE.BoxGeometry(w - 0.1, 0.26, l - 0.1);
                 const mattress = new THREE.Mesh(matGeo, matMat);
                 mattress.position.y = 0.2;
                 mattress.castShadow = true;
                 group.add(mattress);
 
-                // Pillows
-                const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.9 });
+                // Terracotta & Cream Pillows
+                const pillowMat = new THREE.MeshStandardMaterial({ color: 0xf5efe8, roughness: 0.9 });
                 const pillowGeo = new THREE.BoxGeometry(0.7, 0.12, 0.45);
                 [-0.45, 0.45].forEach(px => {
                     const pillow = new THREE.Mesh(pillowGeo, pillowMat);
-                    pillow.position.set(px, 0.36, -l / 2 + 0.4);
+                    pillow.position.set(px, 0.38, -l / 2 + 0.4);
                     group.add(pillow);
                 });
 
-                // Upholstered Headboard
-                const headGeo = new THREE.BoxGeometry(w + 0.2, 0.9, 0.15);
+                // Headboard
+                const headGeo = new THREE.BoxGeometry(w + 0.2, 0.9, 0.14);
                 const headboard = new THREE.Mesh(headGeo, frameMat);
                 headboard.position.set(0, 0.45, -l / 2);
                 headboard.castShadow = true;
                 group.add(headboard);
             } else if (item.type === 'island') {
-                // Calacatta Marble Kitchen Island with Fluted Panel Base
-                const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+                // Fluted Kitchen Island with Waterfall Calacatta Marble Slab
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0x2a1f30, roughness: 0.85 });
                 const baseGeo = new THREE.BoxGeometry(w - 0.2, h - 0.1, l - 0.2);
                 const base = new THREE.Mesh(baseGeo, baseMat);
                 base.position.y = -0.05;
                 base.castShadow = true;
                 group.add(base);
 
-                // Waterfall Marble Countertop
                 const marbleMat = new THREE.MeshStandardMaterial({
                     map: marbleTexture,
                     roughness: 0.15,
@@ -1035,16 +1049,15 @@
                 top.castShadow = true;
                 group.add(top);
             } else if (item.type === 'plant') {
-                // Architectural Planter & Olive Foliage
-                const potMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.4 });
-                const potGeo = new THREE.CylinderGeometry(0.25, 0.2, 0.6, 24);
+                // Terracotta Planter with Olive Branch
+                const potMat = new THREE.MeshStandardMaterial({ color: 0xc86d51, roughness: 0.8 }); // Terracotta
+                const potGeo = new THREE.CylinderGeometry(0.24, 0.18, 0.6, 24);
                 const pot = new THREE.Mesh(potGeo, potMat);
                 pot.position.y = -0.3;
                 pot.castShadow = true;
                 group.add(pot);
 
-                // Stem & Leaves
-                const foliageMat = new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.8 });
+                const foliageMat = new THREE.MeshStandardMaterial({ color: 0x4d6b41, roughness: 0.8 });
                 const sphereGeo = new THREE.SphereGeometry(0.35, 12, 12);
                 const foliage = new THREE.Mesh(sphereGeo, foliageMat);
                 foliage.position.y = 0.35;
@@ -1052,11 +1065,11 @@
                 foliage.castShadow = true;
                 group.add(foliage);
             } else {
-                // Default Sculptural Table / Vanity
+                // Travertine Low Sculptural Table
                 const tableMat = new THREE.MeshStandardMaterial({
-                    color: 0xd4af37,
-                    roughness: 0.3,
-                    metalness: 0.3
+                    color: 0xeed9c4,
+                    roughness: 0.5,
+                    metalness: 0.05
                 });
                 const tableGeo = new THREE.BoxGeometry(w, h, l);
                 const tableMesh = new THREE.Mesh(tableGeo, tableMat);
@@ -1068,7 +1081,7 @@
             return group;
         }
 
-        // --- HYDRATE 3D SCENE FROM GRAPH STATE ---
+        // --- HYDRATE 3D SCENE ---
         function hydrateScene(state) {
             clearThreeScene();
             if (!state.rooms || state.rooms.length === 0) return;
@@ -1085,7 +1098,7 @@
                     height: room.height
                 };
 
-                // PBR Hardwood Floor
+                // PBR Floor
                 const floorGeo = new THREE.PlaneGeometry(room.width, room.length);
                 const floorMat = new THREE.MeshStandardMaterial({
                     map: room.type === 'bathroom' ? marbleTexture : oakTexture,
@@ -1099,17 +1112,17 @@
                 floor.userData = { type: 'floor', roomId: room.id };
                 roomGroup.add(floor);
 
-                // Warm 2700K Ceiling Recessed Spotlight for each room (Dusk mode)
-                const spot = new THREE.PointLight(0xffedd5, 1.2, 9);
+                // Warm Ceiling Recessed Spotlights (Dusk Mode)
+                const spot = new THREE.PointLight(0xffeedb, 1.3, 9);
                 spot.position.set(room.x || 0, (room.height || 2.8) - 0.2, room.z || 0);
                 spotlightGroup.add(spot);
 
-                // Textured Limewash Plaster Walls
+                // Limewash Plaster Walls
                 const wallThick = 0.18;
                 const wallMat = new THREE.MeshStandardMaterial({
                     map: plasterTexture,
-                    roughness: 0.85,
-                    metalness: 0.05
+                    roughness: 0.88,
+                    metalness: 0.02
                 });
 
                 const createWall = (wId, w, h, t, px, py, pz, rotY, posName) => {
@@ -1150,7 +1163,7 @@
                 interactiveObjects.push(roomGroup);
             });
 
-            // Render Openings (Fluted Glass / Framed Doors)
+            // Openings (Fluted Glass & Rose-Gold Frames)
             if (state.openings) {
                 state.openings.forEach(op => {
                     const opGroup = new THREE.Group();
@@ -1159,10 +1172,10 @@
 
                     const frameGeo = new THREE.BoxGeometry(op.width, op.height, 0.22);
                     const frameMat = new THREE.MeshStandardMaterial({
-                        color: op.type === 'window' ? 0x93c5fd : 0xb45309,
+                        color: op.type === 'window' ? 0xe8b4b8 : 0xd4a373,
                         transparent: true,
                         opacity: op.type === 'window' ? 0.35 : 0.85,
-                        roughness: 0.15
+                        roughness: 0.2
                     });
                     const frameMesh = new THREE.Mesh(frameGeo, frameMat);
                     opGroup.add(frameMesh);
@@ -1172,7 +1185,7 @@
                 });
             }
 
-            // Render Interior Furniture
+            // Bespoke Furniture
             if (state.furniture) {
                 state.furniture.forEach(item => {
                     const fMesh = buildFurnitureMesh(item);
@@ -1208,8 +1221,8 @@
                     dbBadge.className = 'badge';
                     dbText.textContent = `Neo4j Online: ${data.database.nodeCounts.rooms} Rooms`;
                 } else {
-                    dbBadge.className = 'badge warning';
-                    dbText.textContent = `In-Memory Mode: ${data.database.nodeCounts.rooms} Rooms`;
+                    dbBadge.className = 'badge';
+                    dbText.textContent = `Atelier Memory: ${data.database.nodeCounts.rooms} Rooms`;
                 }
             } catch (err) {
                 console.warn('Backend status unreachable');
@@ -1229,9 +1242,9 @@
 
                 if (data.result.status === 'COMPLIANT') {
                     codeBadge.className = 'badge';
-                    codeText.textContent = `IBC Validated (${data.result.totalChecks} checks)`;
+                    codeText.textContent = `IBC Certified (${data.result.totalChecks} checks)`;
                 } else {
-                    codeBadge.className = 'badge warning';
+                    codeBadge.className = 'badge';
                     codeText.textContent = `⚠️ ${data.result.violationCount} Code Notice(s)`;
                 }
             } catch (err) {
@@ -1239,7 +1252,7 @@
             }
         }
 
-        // --- AI AGENT CHAT CLIENT ---
+        // --- AI AGENT ATELIER CHAT CLIENT ---
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
@@ -1257,7 +1270,7 @@
                 if (items) {
                     thoughtHtml = `
                         <div class="thought-trace">
-                            <div class="thought-header">🧠 Autonomous Reasoning Trace</div>
+                            <div class="thought-header">🧠 Atelier Reasoning Trace</div>
                             ${items}
                         </div>
                     `;
@@ -1285,7 +1298,7 @@
             appendMessage('user', text);
 
             sendBtn.disabled = true;
-            sendBtn.textContent = 'Designing...';
+            sendBtn.textContent = 'Curating...';
 
             try {
                 const res = await fetch('/api/agent/chat', {
@@ -1305,10 +1318,10 @@
                     appendMessage('assistant', `⚠️ Error executing design plan: ${data.error}`);
                 }
             } catch (err) {
-                appendMessage('assistant', `⚠️ Network error communicating with Agent: ${err.message}`);
+                appendMessage('assistant', `⚠️ Network error communicating with Atelier: ${err.message}`);
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.textContent = 'Send';
+                sendBtn.textContent = 'Design';
             }
         }
 
@@ -1448,7 +1461,7 @@
             renderer.render(scene, camera);
         }
 
-        // Initialize with Golden Hour Lighting
+        // Initialize with Champagne Sunrise Lighting
         setLightingMode('golden');
         fetchProjectState();
         updateStatus();
