@@ -212,10 +212,153 @@ async function inspectProjectTopology() {
   };
 }
 
+/**
+ * Furnishes existing rooms with high-end Architectural Digest interior furniture
+ */
+async function furnishInteriorSpaces({ style = 'japandi' }) {
+  let state = await db.getProjectState();
+  if (!state.rooms || state.rooms.length === 0) {
+    // Autonomously synthesize a residence first if scene is empty
+    await generateSpatialLayout({ program: '2-bedroom-apartment', style });
+    state = await db.getProjectState();
+  }
+
+  // Clear previous furniture
+  db.inMemoryStore.furniture.clear();
+
+  const placedFurniture = [];
+
+  for (const room of state.rooms) {
+    const rx = room.x || 0;
+    const rz = room.z || 0;
+    const rtype = room.type || 'living';
+
+    if (rtype === 'living') {
+      const sofa = await db.createFurniture({
+        roomId: room.id,
+        name: 'Curved Bouclé Sofa',
+        type: 'sofa',
+        width: 2.6,
+        length: 1.1,
+        height: 0.75,
+        x: rx,
+        y: 0.38,
+        z: rz - 0.5,
+        rotationY: 0,
+        material: style === 'mid-century' ? 'cognac-leather' : 'boucle',
+        style
+      });
+
+      const table = await db.createFurniture({
+        roomId: room.id,
+        name: 'Low Sculptural Coffee Table',
+        type: 'table',
+        width: 1.4,
+        length: 0.8,
+        height: 0.35,
+        x: rx,
+        y: 0.18,
+        z: rz + 0.8,
+        rotationY: 0,
+        material: style === 'japandi' ? 'light-oak' : (style === 'mid-century' ? 'walnut' : 'travertine'),
+        style
+      });
+
+      const plant = await db.createFurniture({
+        roomId: room.id,
+        name: 'Indoor Olive Tree Planter',
+        type: 'plant',
+        width: 0.6,
+        length: 0.6,
+        height: 1.8,
+        x: rx - (room.width / 2) + 0.8,
+        y: 0.9,
+        z: rz - (room.length / 2) + 0.8,
+        rotationY: 0,
+        material: 'ceramic-greenery',
+        style
+      });
+      placedFurniture.push(sofa, table, plant);
+    } else if (rtype === 'bedroom') {
+      const bed = await db.createFurniture({
+        roomId: room.id,
+        name: 'Low Minimalist Platform Bed',
+        type: 'bed',
+        width: 2.1,
+        length: 2.2,
+        height: 0.65,
+        x: rx,
+        y: 0.33,
+        z: rz - 0.4,
+        rotationY: 0,
+        material: style === 'japandi' ? 'linen-oak' : 'boucle-walnut',
+        style
+      });
+
+      const nightstandL = await db.createFurniture({
+        roomId: room.id,
+        name: 'Floating Bedside Nightstand',
+        type: 'table',
+        width: 0.5,
+        length: 0.45,
+        height: 0.45,
+        x: rx - 1.4,
+        y: 0.23,
+        z: rz - 0.4,
+        rotationY: 0,
+        material: 'oak',
+        style
+      });
+      placedFurniture.push(bed, nightstandL);
+    } else if (rtype === 'kitchen') {
+      const island = await db.createFurniture({
+        roomId: room.id,
+        name: 'Fluted Marble Kitchen Island',
+        type: 'island',
+        width: 2.4,
+        length: 1.0,
+        height: 0.9,
+        x: rx,
+        y: 0.45,
+        z: rz,
+        rotationY: 0,
+        material: 'calacatta-marble',
+        style
+      });
+      placedFurniture.push(island);
+    } else if (rtype === 'bathroom') {
+      const vanity = await db.createFurniture({
+        roomId: room.id,
+        name: 'Floating Stone Vanity',
+        type: 'island',
+        width: 1.2,
+        length: 0.6,
+        height: 0.8,
+        x: rx,
+        y: 0.4,
+        z: rz - 0.5,
+        rotationY: 0,
+        material: 'terrazzo',
+        style
+      });
+      placedFurniture.push(vanity);
+    }
+  }
+
+  return {
+    success: true,
+    style,
+    furnitureCount: placedFurniture.length,
+    items: placedFurniture.map(f => ({ name: f.name, type: f.type, material: f.material })),
+    message: `Furnished spaces with ${placedFurniture.length} bespoke Architectural Digest pieces (${style} aesthetic).`
+  };
+}
+
 module.exports = {
   generateSpatialLayout,
   validateBuildingCodes,
   addOpeningToWall,
   inspectProjectTopology,
+  furnishInteriorSpaces,
   clearProject: db.clearAll
 };

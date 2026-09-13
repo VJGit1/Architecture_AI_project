@@ -3,24 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autonomous Architectural AI // BIM Studio</title>
+    <title>Architectural Digest AI // BIM Interior Studio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0f141c;
-            --bg-surface: rgba(22, 29, 41, 0.85);
-            --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-primary: #0a0d14;
+            --bg-surface: rgba(18, 24, 38, 0.88);
+            --bg-card: rgba(28, 38, 58, 0.75);
+            --accent-gold: #d4af37;
             --accent-cyan: #06b6d4;
             --accent-blue: #3b82f6;
             --accent-emerald: #10b981;
             --accent-amber: #f59e0b;
-            --accent-rose: #f43f5e;
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
-            --border-glass: rgba(255, 255, 255, 0.08);
-            --border-glow: rgba(6, 182, 212, 0.3);
+            --border-glass: rgba(255, 255, 255, 0.1);
             --panel-width: 420px;
         }
 
@@ -39,7 +38,6 @@
             height: 100vh;
         }
 
-        /* 3D Canvas Viewport */
         #c {
             position: absolute;
             top: 0;
@@ -50,49 +48,50 @@
             z-index: 1;
         }
 
-        /* Header Bar */
+        /* Top Header Bar */
         header {
             position: absolute;
             top: 16px;
             left: 20px;
             right: calc(var(--panel-width) + 40px);
-            height: 56px;
+            height: 60px;
             background: var(--bg-surface);
             border: 1px solid var(--border-glass);
             border-radius: 14px;
-            backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 20px;
             z-index: 10;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
         }
 
         .brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
         }
 
         .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #d4af37, #f59e0b);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-family: 'Cinzel', serif;
             font-weight: 700;
-            color: white;
-            font-size: 16px;
-            box-shadow: 0 0 16px rgba(6, 182, 212, 0.4);
+            color: #0f172a;
+            font-size: 18px;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
         }
 
         .brand-text h1 {
             font-size: 15px;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
             text-transform: uppercase;
         }
 
@@ -105,7 +104,7 @@
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .badge {
@@ -136,7 +135,56 @@
             box-shadow: 0 0 8px currentColor;
         }
 
-        /* 3D Floating Room HUD */
+        /* Lighting Mode Selector */
+        .lighting-select {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-tour {
+            background: linear-gradient(135deg, #d4af37, #b45309);
+            border: none;
+            color: #0f172a;
+            font-weight: 700;
+            border-radius: 8px;
+            padding: 7px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 14px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn-tour:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 3D Floating Room Badges */
         #room-labels-container {
             position: absolute;
             top: 0;
@@ -150,8 +198,8 @@
         .room-3d-tag {
             position: absolute;
             transform: translate(-50%, -100%);
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(6, 182, 212, 0.4);
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(212, 175, 55, 0.4);
             border-radius: 8px;
             padding: 5px 10px;
             font-size: 11px;
@@ -159,16 +207,35 @@
             color: #e2e8f0;
             backdrop-filter: blur(8px);
             white-space: nowrap;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            transition: opacity 0.2s;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
         }
 
         .room-3d-tag span {
-            color: var(--accent-cyan);
+            color: #facc15;
             font-weight: 600;
         }
 
-        /* Controls / Viewport Help HUD */
+        /* Tour Overlay HUD */
+        #tour-hud {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid #d4af37;
+            border-radius: 30px;
+            padding: 8px 24px;
+            font-size: 13px;
+            color: #fef08a;
+            display: none;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Viewport Navigation HUD */
         #viewport-hud {
             position: absolute;
             bottom: 20px;
@@ -179,7 +246,7 @@
             padding: 12px 16px;
             font-size: 12px;
             color: var(--text-secondary);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(14px);
             z-index: 10;
             display: flex;
             gap: 16px;
@@ -196,6 +263,28 @@
             font-size: 11px;
         }
 
+        /* Dimension Indicator Box */
+        #dimension-hud {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            backdrop-filter: blur(12px);
+            z-index: 10;
+            display: none;
+        }
+
+        #dimension-hud span {
+            color: #facc15;
+            font-weight: 600;
+        }
+
         /* Co-Pilot AI Drawer */
         #copilot-panel {
             position: absolute;
@@ -206,8 +295,8 @@
             background: var(--bg-surface);
             border: 1px solid var(--border-glass);
             border-radius: 16px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(24px);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
             display: flex;
             flex-direction: column;
             z-index: 20;
@@ -235,8 +324,8 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--accent-cyan);
-            box-shadow: 0 0 10px var(--accent-cyan);
+            background: #d4af37;
+            box-shadow: 0 0 12px #d4af37;
             animation: pulse 2s infinite;
         }
 
@@ -275,8 +364,8 @@
         }
 
         .chip:hover {
-            background: rgba(6, 182, 212, 0.15);
-            border-color: var(--accent-cyan);
+            background: rgba(212, 175, 55, 0.15);
+            border-color: #d4af37;
             color: var(--text-primary);
             transform: translateY(-1px);
         }
@@ -321,7 +410,7 @@
         }
 
         .message.user .message-bubble {
-            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
             border-bottom-right-radius: 4px;
         }
@@ -336,22 +425,22 @@
         .message-bubble code {
             font-family: 'JetBrains Mono', monospace;
             font-size: 11px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.35);
             padding: 2px 5px;
             border-radius: 4px;
-            color: var(--accent-cyan);
+            color: #38bdf8;
         }
 
         /* Live Reasoning Thought Box */
         .thought-trace {
-            background: rgba(15, 23, 42, 0.6);
-            border-left: 3px solid var(--accent-cyan);
+            background: rgba(15, 23, 42, 0.7);
+            border-left: 3px solid #d4af37;
             border-radius: 4px 8px 8px 4px;
             padding: 8px 12px;
             margin-bottom: 8px;
             font-size: 11px;
             font-family: 'JetBrains Mono', monospace;
-            color: #38bdf8;
+            color: #facc15;
             display: flex;
             flex-direction: column;
             gap: 4px;
@@ -390,70 +479,30 @@
         }
 
         .chat-input:focus {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+            border-color: #d4af37;
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
         }
 
         .btn-send {
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            background: linear-gradient(135deg, #d4af37, #b45309);
             border: none;
             border-radius: 10px;
-            padding: 0 16px;
-            color: white;
-            font-weight: 600;
+            padding: 0 18px;
+            color: #0f172a;
+            font-weight: 700;
             font-size: 13px;
             cursor: pointer;
             transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .btn-send:hover {
-            opacity: 0.9;
+            opacity: 0.95;
             transform: scale(1.02);
         }
 
         .btn-send:disabled {
             opacity: 0.4;
             cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--border-glass);
-            color: var(--text-primary);
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Dimension Indicator Box */
-        #dimension-hud {
-            position: absolute;
-            top: 86px;
-            left: 20px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-glass);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--text-secondary);
-            backdrop-filter: blur(12px);
-            z-index: 10;
-            display: none;
-        }
-
-        #dimension-hud span {
-            color: var(--accent-cyan);
-            font-weight: 600;
         }
     </style>
 </head>
@@ -465,17 +514,31 @@
     <!-- Floating 3D Room Badges Container -->
     <div id="room-labels-container"></div>
 
+    <!-- First-Person Walkthrough HUD (appears in Tour Mode) -->
+    <div id="tour-hud">
+        <span>🚶 <b>Tour Mode Active:</b> Use <span class="kbd-key">W</span> <span class="kbd-key">A</span> <span class="kbd-key">S</span> <span class="kbd-key">D</span> to walk, Mouse to look around.</span>
+        <button id="exit-tour-btn" class="btn-secondary" style="padding: 3px 8px; font-size: 11px;">Exit Tour (Esc)</button>
+    </div>
+
     <!-- Header Navigation -->
     <header>
         <div class="brand">
-            <div class="logo-icon">AI</div>
+            <div class="logo-icon">AD</div>
             <div class="brand-text">
                 <h1>Architectural AI Studio</h1>
-                <p>Autonomous Semantic BIM & Spatial Graph Co-Pilot</p>
+                <p>BIM Knowledge Graph & High-End Interior Co-Pilot</p>
             </div>
         </div>
 
         <div class="header-actions">
+            <select id="lighting-mode" class="lighting-select" title="Sunlight & Atmosphere">
+                <option value="golden">🌅 Golden Hour (3000K)</option>
+                <option value="noon">☀️ High Noon (Daylight)</option>
+                <option value="dusk">🌙 Cozy Dusk (Interior Spotlights)</option>
+            </select>
+            <button id="tour-btn" class="btn-tour" title="Drop to human eye level and walk through">
+                🚶 Tour Interior
+            </button>
             <div id="db-badge" class="badge">
                 <div class="badge-dot"></div>
                 <span id="db-status-text">Probing Graph...</span>
@@ -484,20 +547,20 @@
                 <div class="badge-dot"></div>
                 <span id="code-status-text">IBC Validating</span>
             </div>
-            <button id="clear-btn" class="btn-secondary">Clear Canvas</button>
+            <button id="clear-btn" class="btn-secondary">Clear</button>
             <button id="reset-cam-btn" class="btn-secondary">Reset View</button>
         </div>
     </header>
 
-    <!-- Dimension HUD (appears on object selection/transform) -->
+    <!-- Dimension HUD -->
     <div id="dimension-hud">
         Selected: <span id="sel-name">-</span> | Size: <span id="sel-w">0</span>m x <span id="sel-l">0</span>m | Area: <span id="sel-a">0</span> m²
     </div>
 
     <!-- Viewport Navigation Keymap HUD -->
     <div id="viewport-hud">
-        <span><b>Navigation:</b> Left-Click to Orbit | Right-Click to Pan | Scroll to Zoom</span>
-        <span><b>Transform:</b> <span class="kbd-key">T</span> Translate | <span class="kbd-key">R</span> Rotate | <span class="kbd-key">S</span> Scale | <span class="kbd-key">Esc</span> Deselect</span>
+        <span><b>Orbit:</b> Left-Click to Rotate | Right-Click to Pan | Scroll to Zoom</span>
+        <span><b>Transform:</b> <span class="kbd-key">T</span> Move | <span class="kbd-key">R</span> Rotate | <span class="kbd-key">S</span> Scale | <span class="kbd-key">Esc</span> Deselect</span>
     </div>
 
     <!-- AI Architect Co-Pilot Drawer -->
@@ -505,18 +568,21 @@
         <div class="copilot-header">
             <div class="copilot-title">
                 <div class="copilot-status-dot"></div>
-                <span>Architectural Agent Co-Pilot</span>
+                <span>Architectural Digest Co-Pilot</span>
             </div>
-            <span style="font-size: 11px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">v2.0</span>
+            <span style="font-size: 11px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;">v2.5 Interior Edition</span>
         </div>
 
         <!-- Quick Action Prompt Chips -->
         <div class="chips-container">
-            <div class="chip" data-prompt="Generate a modern 2-bedroom apartment with an open kitchen">
-                🏢 2-Bed Apartment
+            <div class="chip" data-prompt="Generate a 2-bedroom luxury residence and furnish it in Japandi aesthetic">
+                🌿 Japandi Residence
             </div>
-            <div class="chip" data-prompt="Design an efficient urban studio apartment with full bath">
-                🏙️ Urban Studio
+            <div class="chip" data-prompt="Furnish this apartment in Mid-Century Modern style with walnut and leather">
+                🪵 Mid-Century Interior
+            </div>
+            <div class="chip" data-prompt="Furnish spaces with warm minimalist bouclé and travertine decor">
+                🏛️ Warm Minimalist
             </div>
             <div class="chip" data-prompt="Audit my building plan against IBC and ADA safety codes">
                 🛡️ Check IBC Codes
@@ -530,15 +596,16 @@
         <div id="chat-messages">
             <div class="message assistant">
                 <div class="message-bubble">
-                    👋 <b>Hello! I am your Autonomous BIM Architect.</b><br><br>
-                    Tell me what you'd like to build, or click a quick template above. I formulate topological graphs in Neo4j, pack 3D spatial boundaries, puncture openings, and verify international building codes in real time.
+                    ✨ <b>Welcome to your Architectural Digest BIM Studio.</b><br><br>
+                    I design intelligent floor plans with Neo4j spatial topology, furnish spaces with curated designer furniture, and render photorealistic materials with golden hour sunlight.<br><br>
+                    Try asking: <i>"Generate a 2-bedroom apartment and furnish it in Japandi style"</i> or click a prompt above!
                 </div>
             </div>
         </div>
 
         <!-- Input Bar -->
         <div class="chat-input-container">
-            <input type="text" id="user-input" class="chat-input" placeholder="e.g. 'Generate a 2-bedroom apartment with open kitchen'..." autocomplete="off">
+            <input type="text" id="user-input" class="chat-input" placeholder="e.g. 'Furnish this space with Japandi bouclé furniture'..." autocomplete="off">
             <button id="send-btn" class="btn-send">Send</button>
         </div>
     </aside>
@@ -564,49 +631,167 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0e17);
-        scene.fog = new THREE.FogExp2(0x0a0e17, 0.015);
+        scene.background = new THREE.Color(0x0a0d14);
+        scene.fog = new THREE.FogExp2(0x0a0d14, 0.012);
 
-        // Camera
+        // Perspective Camera
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(16, 18, 24);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        // --- PROCEDURAL ARCHITECTURAL TEXTURES (PBR) ---
+        function createHerringboneTexture() {
+            const size = 512;
+            const cv = document.createElement('canvas');
+            cv.width = size; cv.height = size;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#b8926a'; // Warm French oak base
+            ctx.fillRect(0, 0, size, size);
+
+            // Wood plank lines
+            ctx.strokeStyle = '#855d37';
+            ctx.lineWidth = 3;
+            for (let x = 0; x < size; x += 32) {
+                for (let y = 0; y < size; y += 64) {
+                    ctx.strokeRect(x, y, 32, 64);
+                    // Wood grain streaks
+                    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+                    ctx.fillRect(x + 4, y + 2, 24, 2);
+                    ctx.fillRect(x + 8, y + 20, 16, 2);
+                }
+            }
+            const texture = new THREE.CanvasTexture(cv);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
+            return texture;
+        }
+
+        function createPlasterTexture() {
+            const size = 256;
+            const cv = document.createElement('canvas');
+            cv.width = size; cv.height = size;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#e2e8f0'; // Limewash off-white
+            ctx.fillRect(0, 0, size, size);
+
+            // Subtle stucco noise
+            for (let i = 0; i < 4000; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)';
+                ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+            }
+            const texture = new THREE.CanvasTexture(cv);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(3, 3);
+            return texture;
+        }
+
+        function createMarbleTexture() {
+            const size = 512;
+            const cv = document.createElement('canvas');
+            cv.width = size; cv.height = size;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = '#f8fafc'; // Calacatta white base
+            ctx.fillRect(0, 0, size, size);
+
+            // Organic gold/grey marble veins
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.25)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 100);
+            ctx.bezierCurveTo(150, 80, 250, 300, 512, 240);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)'; // Gold vein
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(50, 0);
+            ctx.bezierCurveTo(200, 220, 350, 150, 480, 512);
+            ctx.stroke();
+
+            const texture = new THREE.CanvasTexture(cv);
+            return texture;
+        }
+
+        const oakTexture = createHerringboneTexture();
+        const plasterTexture = createPlasterTexture();
+        const marbleTexture = createMarbleTexture();
+
+        // --- LIGHTING & SUN STUDY SIMULATION ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
-        sunLight.position.set(15, 30, 20);
+        const sunLight = new THREE.DirectionalLight(0xfffaed, 1.8);
+        sunLight.position.set(18, 14, 18);
         sunLight.castShadow = true;
         sunLight.shadow.mapSize.width = 2048;
         sunLight.shadow.mapSize.height = 2048;
         sunLight.shadow.camera.near = 0.5;
         sunLight.shadow.camera.far = 100;
-        sunLight.shadow.camera.left = -25;
-        sunLight.shadow.camera.right = 25;
-        sunLight.shadow.camera.top = 25;
-        sunLight.shadow.camera.bottom = -25;
+        sunLight.shadow.camera.left = -30;
+        sunLight.shadow.camera.right = 30;
+        sunLight.shadow.camera.top = 30;
+        sunLight.shadow.camera.bottom = -30;
+        sunLight.shadow.bias = -0.0005;
         scene.add(sunLight);
 
-        const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.4);
-        fillLight.position.set(-15, 10, -15);
-        scene.add(fillLight);
+        const skyFillLight = new THREE.DirectionalLight(0x93c5fd, 0.4);
+        skyFillLight.position.set(-15, 12, -15);
+        scene.add(skyFillLight);
+
+        // Ceiling Recessed Spotlights Group
+        const spotlightGroup = new THREE.Group();
+        scene.add(spotlightGroup);
+
+        function setLightingMode(mode) {
+            if (mode === 'golden') {
+                scene.background.setHex(0x0a0d14);
+                sunLight.color.setHex(0xffaa44); // Warm golden light
+                sunLight.intensity = 2.2;
+                sunLight.position.set(22, 9, 20); // Low angle
+                ambientLight.intensity = 0.7;
+                renderer.toneMappingExposure = 1.1;
+                spotlightGroup.visible = false;
+            } else if (mode === 'noon') {
+                scene.background.setHex(0x0f172a);
+                sunLight.color.setHex(0xffffff); // Pure white sunlight
+                sunLight.intensity = 1.8;
+                sunLight.position.set(12, 35, 15); // Overhead
+                ambientLight.intensity = 1.0;
+                renderer.toneMappingExposure = 1.0;
+                spotlightGroup.visible = false;
+            } else if (mode === 'dusk') {
+                scene.background.setHex(0x030712);
+                sunLight.color.setHex(0x38bdf8); // Blue twilight fill
+                sunLight.intensity = 0.4;
+                ambientLight.intensity = 0.3;
+                renderer.toneMappingExposure = 1.25;
+                spotlightGroup.visible = true;
+            }
+        }
+
+        document.getElementById('lighting-mode').addEventListener('change', (e) => {
+            setLightingMode(e.target.value);
+        });
 
         // Architectural Ground Plane & Grid
-        const gridHelper = new THREE.GridHelper(60, 60, 0x06b6d4, 0x1e293b);
+        const gridHelper = new THREE.GridHelper(60, 60, 0xd4af37, 0x1e293b);
         gridHelper.position.y = -0.01;
         scene.add(gridHelper);
 
-        // Controls
+        // OrbitControls
         const orbitControls = new OrbitControls(camera, renderer.domElement);
         orbitControls.enableDamping = true;
         orbitControls.dampingFactor = 0.05;
-        orbitControls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevent camera under floor
+        orbitControls.maxPolarAngle = Math.PI / 2 - 0.02;
         orbitControls.target.set(0, 1, 0);
         orbitControls.update();
 
+        // TransformControls
         const transformControls = new TransformControls(camera, renderer.domElement);
         scene.add(transformControls);
 
@@ -614,20 +799,95 @@
             orbitControls.enabled = !event.value;
         });
 
-        // Track 3D Room Groups and Openings
+        // State Entities
         const sceneEntities = {
             rooms: new Map(),
             walls: new Map(),
-            openings: new Map()
+            openings: new Map(),
+            furniture: new Map()
         };
         const interactiveObjects = [];
         let selectedObject = null;
+
+        // --- FIRST-PERSON TOUR MODE (WALKTHROUGH) ---
+        let isTourMode = false;
+        const walkSpeed = 0.12;
+        const keysPressed = {};
+        const tourHud = document.getElementById('tour-hud');
+        let savedCameraPos = new THREE.Vector3();
+        let savedTarget = new THREE.Vector3();
+
+        function enterTourMode() {
+            isTourMode = true;
+            orbitControls.enabled = false;
+            transformControls.detach();
+
+            savedCameraPos.copy(camera.position);
+            savedTarget.copy(orbitControls.target);
+
+            // Find first room center or default to (0, 1.7, 0)
+            let startX = 0, startZ = 0;
+            if (sceneEntities.rooms.size > 0) {
+                const firstRoom = sceneEntities.rooms.values().next().value;
+                startX = firstRoom.position.x;
+                startZ = firstRoom.position.z;
+            }
+
+            camera.position.set(startX, 1.7, startZ); // 1.7m = 5'7" eye height
+            camera.lookAt(startX, 1.7, startZ - 5);
+            tourHud.style.display = 'flex';
+        }
+
+        function exitTourMode() {
+            isTourMode = false;
+            orbitControls.enabled = true;
+            camera.position.copy(savedCameraPos);
+            orbitControls.target.copy(savedTarget);
+            orbitControls.update();
+            tourHud.style.display = 'none';
+        }
+
+        document.getElementById('tour-btn').addEventListener('click', enterTourMode);
+        document.getElementById('exit-tour-btn').addEventListener('click', exitTourMode);
+
+        window.addEventListener('keydown', (e) => {
+            keysPressed[e.key.toLowerCase()] = true;
+            if (e.key === 'Escape' && isTourMode) {
+                exitTourMode();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        function updateTourMovement() {
+            if (!isTourMode) return;
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+
+            const right = new THREE.Vector3();
+            right.crossVectors(camera.up, forward).normalize();
+
+            if (keysPressed['w'] || keysPressed['arrowup']) camera.position.addScaledVector(forward, walkSpeed);
+            if (keysPressed['s'] || keysPressed['arrowdown']) camera.position.addScaledVector(forward, -walkSpeed);
+            if (keysPressed['a'] || keysPressed['arrowleft']) camera.position.addScaledVector(right, walkSpeed);
+            if (keysPressed['d'] || keysPressed['arrowright']) camera.position.addScaledVector(right, -walkSpeed);
+
+            camera.position.y = 1.7; // Maintain fixed eye level
+        }
 
         // --- ROOM 3D LABELS ---
         const labelContainer = document.getElementById('room-labels-container');
         const roomTags = new Map();
 
         function updateRoomTags() {
+            if (isTourMode) {
+                roomTags.forEach(tag => tag.style.display = 'none');
+                return;
+            }
+
             sceneEntities.rooms.forEach((group, roomId) => {
                 let tag = roomTags.get(roomId);
                 if (!tag) {
@@ -637,13 +897,11 @@
                     roomTags.set(roomId, tag);
                 }
 
-                // Project room 3D center position to screen space
                 const pos = new THREE.Vector3();
                 group.getWorldPosition(pos);
-                pos.y += (group.userData.height || 2.8) + 0.4;
+                pos.y += (group.userData.height || 2.8) + 0.3;
                 pos.project(camera);
 
-                // Check if behind camera
                 if (pos.z > 1) {
                     tag.style.display = 'none';
                     return;
@@ -659,7 +917,7 @@
             });
         }
 
-        // --- CLEAR SCENE GRAPH IN THREE.JS ---
+        // --- CLEAR SCENE ---
         function clearThreeScene() {
             transformControls.detach();
             selectedObject = null;
@@ -668,20 +926,151 @@
             sceneEntities.rooms.forEach(grp => scene.remove(grp));
             sceneEntities.walls.forEach(mesh => scene.remove(mesh));
             sceneEntities.openings.forEach(mesh => scene.remove(mesh));
+            sceneEntities.furniture.forEach(grp => scene.remove(grp));
 
             sceneEntities.rooms.clear();
             sceneEntities.walls.clear();
             sceneEntities.openings.clear();
+            sceneEntities.furniture.clear();
             interactiveObjects.length = 0;
+
+            // Clear spotlights
+            while (spotlightGroup.children.length > 0) {
+                spotlightGroup.remove(spotlightGroup.children[0]);
+            }
 
             roomTags.forEach(tag => tag.remove());
             roomTags.clear();
         }
 
+        // --- PROCEDURAL BESPOKE FURNITURE BUILDER ---
+        function buildFurnitureMesh(item) {
+            const group = new THREE.Group();
+            group.position.set(item.x || 0, item.y || 0, item.z || 0);
+            group.rotation.y = item.rotationY || 0;
+
+            const w = item.width || 2;
+            const l = item.length || 1;
+            const h = item.height || 0.8;
+
+            if (item.type === 'sofa') {
+                // Curved Bouclé Sofa
+                const seatGeo = new THREE.BoxGeometry(w, 0.35, l);
+                const seatMat = new THREE.MeshStandardMaterial({
+                    color: item.material === 'cognac-leather' ? 0x9a3412 : 0xf1f5f9,
+                    roughness: 0.9,
+                    metalness: 0.05
+                });
+                const seat = new THREE.Mesh(seatGeo, seatMat);
+                seat.castShadow = true;
+                seat.receiveShadow = true;
+                group.add(seat);
+
+                // Backrest
+                const backGeo = new THREE.BoxGeometry(w, 0.45, 0.3);
+                const back = new THREE.Mesh(backGeo, seatMat);
+                back.position.set(0, 0.35, -l / 2 + 0.15);
+                back.castShadow = true;
+                group.add(back);
+
+                // Brass legs
+                const legMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 });
+                const legGeo = new THREE.CylinderGeometry(0.03, 0.02, 0.15);
+                [-w/2 + 0.15, w/2 - 0.15].forEach(lx => {
+                    [-l/2 + 0.15, l/2 - 0.15].forEach(lz => {
+                        const leg = new THREE.Mesh(legGeo, legMat);
+                        leg.position.set(lx, -0.25, lz);
+                        group.add(leg);
+                    });
+                });
+            } else if (item.type === 'bed') {
+                // Platform Bed Frame
+                const frameMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 });
+                const frameGeo = new THREE.BoxGeometry(w, 0.2, l);
+                const frame = new THREE.Mesh(frameGeo, frameMat);
+                frame.castShadow = true;
+                group.add(frame);
+
+                // Mattress with Crisp Linen
+                const matMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9 });
+                const matGeo = new THREE.BoxGeometry(w - 0.1, 0.25, l - 0.1);
+                const mattress = new THREE.Mesh(matGeo, matMat);
+                mattress.position.y = 0.2;
+                mattress.castShadow = true;
+                group.add(mattress);
+
+                // Pillows
+                const pillowMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.9 });
+                const pillowGeo = new THREE.BoxGeometry(0.7, 0.12, 0.45);
+                [-0.45, 0.45].forEach(px => {
+                    const pillow = new THREE.Mesh(pillowGeo, pillowMat);
+                    pillow.position.set(px, 0.36, -l / 2 + 0.4);
+                    group.add(pillow);
+                });
+
+                // Upholstered Headboard
+                const headGeo = new THREE.BoxGeometry(w + 0.2, 0.9, 0.15);
+                const headboard = new THREE.Mesh(headGeo, frameMat);
+                headboard.position.set(0, 0.45, -l / 2);
+                headboard.castShadow = true;
+                group.add(headboard);
+            } else if (item.type === 'island') {
+                // Calacatta Marble Kitchen Island with Fluted Panel Base
+                const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+                const baseGeo = new THREE.BoxGeometry(w - 0.2, h - 0.1, l - 0.2);
+                const base = new THREE.Mesh(baseGeo, baseMat);
+                base.position.y = -0.05;
+                base.castShadow = true;
+                group.add(base);
+
+                // Waterfall Marble Countertop
+                const marbleMat = new THREE.MeshStandardMaterial({
+                    map: marbleTexture,
+                    roughness: 0.15,
+                    metalness: 0.1
+                });
+                const topGeo = new THREE.BoxGeometry(w, 0.1, l);
+                const top = new THREE.Mesh(topGeo, marbleMat);
+                top.position.y = h / 2 - 0.05;
+                top.castShadow = true;
+                group.add(top);
+            } else if (item.type === 'plant') {
+                // Architectural Planter & Olive Foliage
+                const potMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.4 });
+                const potGeo = new THREE.CylinderGeometry(0.25, 0.2, 0.6, 24);
+                const pot = new THREE.Mesh(potGeo, potMat);
+                pot.position.y = -0.3;
+                pot.castShadow = true;
+                group.add(pot);
+
+                // Stem & Leaves
+                const foliageMat = new THREE.MeshStandardMaterial({ color: 0x3f6212, roughness: 0.8 });
+                const sphereGeo = new THREE.SphereGeometry(0.35, 12, 12);
+                const foliage = new THREE.Mesh(sphereGeo, foliageMat);
+                foliage.position.y = 0.35;
+                foliage.scale.set(1, 1.4, 1);
+                foliage.castShadow = true;
+                group.add(foliage);
+            } else {
+                // Default Sculptural Table / Vanity
+                const tableMat = new THREE.MeshStandardMaterial({
+                    color: 0xd4af37,
+                    roughness: 0.3,
+                    metalness: 0.3
+                });
+                const tableGeo = new THREE.BoxGeometry(w, h, l);
+                const tableMesh = new THREE.Mesh(tableGeo, tableMat);
+                tableMesh.castShadow = true;
+                tableMesh.receiveShadow = true;
+                group.add(tableMesh);
+            }
+
+            return group;
+        }
+
         // --- HYDRATE 3D SCENE FROM GRAPH STATE ---
         function hydrateScene(state) {
             clearThreeScene();
-
             if (!state.rooms || state.rooms.length === 0) return;
 
             state.rooms.forEach(room => {
@@ -696,12 +1085,12 @@
                     height: room.height
                 };
 
-                // Floor Mesh
+                // PBR Hardwood Floor
                 const floorGeo = new THREE.PlaneGeometry(room.width, room.length);
                 const floorMat = new THREE.MeshStandardMaterial({
-                    color: room.type === 'bathroom' ? 0x94a3b8 : (room.type === 'kitchen' ? 0x475569 : 0x78350f),
-                    roughness: 0.6,
-                    metalness: 0.1,
+                    map: room.type === 'bathroom' ? marbleTexture : oakTexture,
+                    roughness: room.type === 'bathroom' ? 0.15 : 0.45,
+                    metalness: 0.05,
                     side: THREE.DoubleSide
                 });
                 const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -710,15 +1099,19 @@
                 floor.userData = { type: 'floor', roomId: room.id };
                 roomGroup.add(floor);
 
-                // Walls with boolean door openings
+                // Warm 2700K Ceiling Recessed Spotlight for each room (Dusk mode)
+                const spot = new THREE.PointLight(0xffedd5, 1.2, 9);
+                spot.position.set(room.x || 0, (room.height || 2.8) - 0.2, room.z || 0);
+                spotlightGroup.add(spot);
+
+                // Textured Limewash Plaster Walls
                 const wallThick = 0.18;
                 const wallMat = new THREE.MeshStandardMaterial({
-                    color: 0x334155,
-                    roughness: 0.8,
-                    metalness: 0.1
+                    map: plasterTexture,
+                    roughness: 0.85,
+                    metalness: 0.05
                 });
 
-                // Helper to create wall mesh
                 const createWall = (wId, w, h, t, px, py, pz, rotY, posName) => {
                     const wallGeo = new THREE.BoxGeometry(w, h, t);
                     const wallMesh = new THREE.Mesh(wallGeo, wallMat);
@@ -726,16 +1119,10 @@
                     wallMesh.rotation.y = rotY;
                     wallMesh.castShadow = true;
                     wallMesh.receiveShadow = true;
-                    wallMesh.userData = {
-                        type: 'wall',
-                        id: wId,
-                        roomId: room.id,
-                        positionName: posName
-                    };
+                    wallMesh.userData = { type: 'wall', id: wId, roomId: room.id, positionName: posName };
                     return wallMesh;
                 };
 
-                // Add 4 surrounding walls
                 const halfW = room.width / 2;
                 const halfL = room.length / 2;
                 const halfH = room.height / 2;
@@ -763,26 +1150,34 @@
                 interactiveObjects.push(roomGroup);
             });
 
-            // Render Openings (Doors / Windows)
+            // Render Openings (Fluted Glass / Framed Doors)
             if (state.openings) {
                 state.openings.forEach(op => {
                     const opGroup = new THREE.Group();
                     opGroup.position.set(op.x || 0, op.y || 1.05, op.z || 0);
                     opGroup.rotation.y = op.rotationY || 0;
 
-                    // Frame & Door Leaf
                     const frameGeo = new THREE.BoxGeometry(op.width, op.height, 0.22);
                     const frameMat = new THREE.MeshStandardMaterial({
-                        color: op.type === 'window' ? 0x38bdf8 : 0xd97706,
+                        color: op.type === 'window' ? 0x93c5fd : 0xb45309,
                         transparent: true,
-                        opacity: op.type === 'window' ? 0.4 : 0.85,
-                        roughness: 0.3
+                        opacity: op.type === 'window' ? 0.35 : 0.85,
+                        roughness: 0.15
                     });
                     const frameMesh = new THREE.Mesh(frameGeo, frameMat);
                     opGroup.add(frameMesh);
 
                     scene.add(opGroup);
                     sceneEntities.openings.set(op.id, opGroup);
+                });
+            }
+
+            // Render Interior Furniture
+            if (state.furniture) {
+                state.furniture.forEach(item => {
+                    const fMesh = buildFurnitureMesh(item);
+                    scene.add(fMesh);
+                    sceneEntities.furniture.set(item.id, fMesh);
                 });
             }
 
@@ -802,7 +1197,6 @@
             }
         }
 
-        // --- CHECK STATUS & CONNECTIVITY ---
         async function updateStatus() {
             try {
                 const res = await fetch('/api/status');
@@ -870,7 +1264,6 @@
                 }
             }
 
-            // Simple markdown-style bold and code tags conversion
             const formattedContent = content
                 .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
                 .replace(/\*(.*?)\*/g, '<i>$1</i>')
@@ -892,7 +1285,7 @@
             appendMessage('user', text);
 
             sendBtn.disabled = true;
-            sendBtn.textContent = 'Thinking...';
+            sendBtn.textContent = 'Designing...';
 
             try {
                 const res = await fetch('/api/agent/chat', {
@@ -932,12 +1325,10 @@
             });
         });
 
-        // Clear button
         document.getElementById('clear-btn').addEventListener('click', () => {
             sendUserPrompt('Clear scene and reset the graph');
         });
 
-        // Reset camera
         document.getElementById('reset-cam-btn').addEventListener('click', () => {
             camera.position.set(16, 18, 24);
             orbitControls.target.set(0, 1, 0);
@@ -949,6 +1340,7 @@
         const mouse = new THREE.Vector2();
 
         window.addEventListener('click', (e) => {
+            if (isTourMode) return;
             if (e.target.closest('#copilot-panel') || e.target.closest('header') || e.target.closest('#viewport-hud')) {
                 return;
             }
@@ -981,7 +1373,6 @@
             }
         });
 
-        // Sync transforms to backend when user finishes drag
         transformControls.addEventListener('mouseUp', async () => {
             const obj = transformControls.object;
             if (obj && obj.userData.type === 'room') {
@@ -1021,7 +1412,6 @@
             }
         });
 
-        // Keyboard transformation keys
         window.addEventListener('keydown', (e) => {
             if (document.activeElement === userInput) return;
             switch (e.key.toLowerCase()) {
@@ -1040,7 +1430,6 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Responsive canvas resize
             const w = canvas.clientWidth;
             const h = canvas.clientHeight;
             if (canvas.width !== w || canvas.height !== h) {
@@ -1049,12 +1438,18 @@
                 camera.updateProjectionMatrix();
             }
 
-            orbitControls.update();
+            if (isTourMode) {
+                updateTourMovement();
+            } else {
+                orbitControls.update();
+            }
+
             updateRoomTags();
             renderer.render(scene, camera);
         }
 
-        // Initialize
+        // Initialize with Golden Hour Lighting
+        setLightingMode('golden');
         fetchProjectState();
         updateStatus();
         animate();
