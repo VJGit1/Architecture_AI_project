@@ -6,9 +6,11 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./src/graph/db');
 const agent = require('./src/agent/agentCore');
+const { ArchitecturalBenchmarkSuite } = require('./src/agent/evaluator');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const benchmarkSuite = new ArchitecturalBenchmarkSuite();
 
 app.use(cors());
 app.use(express.json());
@@ -25,6 +27,17 @@ app.get('/api/status', async (req, res) => {
     },
     version: '2.0.0-agentic'
   });
+});
+
+// --- QUANTITATIVE BENCHMARK HARNESS ---
+app.get('/api/benchmark', async (req, res) => {
+  try {
+    const report = await benchmarkSuite.runFullBenchmark();
+    res.json({ success: true, ...report });
+  } catch (error) {
+    console.error('Benchmark error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // --- SCENE HYDRATION: GET COMPLETE 3D GRAPH ---
