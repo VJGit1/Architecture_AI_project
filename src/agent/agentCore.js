@@ -81,6 +81,79 @@ async function executeTool(toolName, args = {}) {
   }
 }
 
+function parseRoomProgramFromPrompt(userMessage) {
+  const p = userMessage.toLowerCase().trim();
+
+  // 1. Detect explicitly mentioned room names
+  const bedCountMatch = p.match(/(\d+)\s*(?:bed|bedroom)/i);
+  let bedCount = bedCountMatch ? parseInt(bedCountMatch[1]) : (/one\s*bed/i.test(p) ? 1 : (/two\s*bed/i.test(p) ? 2 : (/three\s*bed/i.test(p) ? 3 : 0)));
+  const hasBedroom = bedCount > 0 || /(?:1\s*|one\s*)?bedroom|(?:\bbed\b)/i.test(p);
+  if (hasBedroom && bedCount === 0) bedCount = 1;
+
+  const hasKitchen = p.includes('kitchen') || p.includes('kitchenette');
+  const hasLiving = p.includes('living') || p.includes('salon') || p.includes('lounge');
+  const hasBathroom = p.includes('bath') || p.includes('bathroom') || p.includes('powder') || p.includes('washroom') || p.includes('restroom');
+  const hasOffice = p.includes('office') || p.includes('study') || p.includes('workspace');
+  const hasBalcony = p.includes('balcony') || p.includes('terrace');
+
+  // Check if user specifically requested a concise custom program (e.g. "1bedroom kitchen", "just bedroom and kitchen", "bedroom and bath")
+  const isExplicitSubset = (
+    p.includes('just') ||
+    p.includes('only') ||
+    (hasBedroom && hasKitchen && !hasLiving) ||
+    (hasBedroom && hasBathroom && !hasLiving && !hasKitchen) ||
+    (hasKitchen && !hasLiving && !hasBedroom)
+  );
+
+  if (isExplicitSubset || (!p.includes('apartment') && !p.includes('residence') && !p.includes('penthouse') && !p.includes('house') && (hasBedroom || hasKitchen || hasLiving || hasBathroom || hasOffice))) {
+    const customRooms = [];
+    if (hasLiving) {
+      customRooms.push({ name: 'Living Room', type: 'living', width: 5.8, length: 5.0, height: 3.0 });
+    }
+    if (hasBedroom && bedCount > 0) {
+      for (let i = 1; i <= Math.min(bedCount, 4); i++) {
+        customRooms.push({ name: bedCount > 1 ? `Bedroom ${i}` : 'Primary Bedroom', type: 'bedroom', width: 4.6, length: 4.0, height: 2.8 });
+      }
+    }
+    if (hasKitchen) {
+      customRooms.push({ name: 'Kitchen & Dining', type: 'kitchen', width: 4.2, length: 3.8, height: 2.8 });
+    }
+    if (hasBathroom) {
+      customRooms.push({ name: 'Bathroom', type: 'bathroom', width: 2.6, length: 2.8, height: 2.6 });
+    }
+    if (hasOffice) {
+      customRooms.push({ name: 'Home Office / Study', type: 'office', width: 3.8, length: 3.6, height: 2.8 });
+    }
+    if (hasBalcony) {
+      customRooms.push({ name: 'Terrace', type: 'balcony', width: 3.5, length: 2.0, height: 2.8 });
+    }
+
+    if (customRooms.length > 0) {
+      return {
+        program: customRooms.map(r => r.name).join(' + '),
+        customRooms,
+        rationale: `Decomposed prompt into exactly ${customRooms.length} requested spaces: ${customRooms.map(r => r.name).join(', ')}.`
+      };
+    }
+  }
+
+  // Standard Archetypes
+  if (p.includes('studio')) {
+    return { program: 'studio', targetSqMeters: 40, rationale: 'Synthesizing compact urban studio layout with combined living/sleeping zone and full bath.' };
+  }
+  if (bedCount === 1 || /1\s*-?\s*bed|one\s*bed/i.test(p)) {
+    return { program: '1-bedroom', targetSqMeters: 60, rationale: 'Formulating 1-bedroom suite with private bedroom, en-suite bath, and open-plan kitchen/living.' };
+  }
+  if (bedCount >= 3 || /3\s*-?\s*bed|three\s*bed|penthouse/i.test(p)) {
+    return { program: '3-bedroom-penthouse', targetSqMeters: 135, rationale: 'Formulating haute penthouse suite with master wing, multiple guest suites, and grand salon.' };
+  }
+  if (p.includes('office') || p.includes('work')) {
+    return { program: 'office', targetSqMeters: 140, rationale: 'Formulating corporate executive office suite with conference hall and creative studio.' };
+  }
+
+  return { program: '2-bedroom', targetSqMeters: 85, rationale: 'Formulating 2-bedroom residential program with public/private spatial zoning, primary suite, and guest room.' };
+}
+
 /**
  * Intelligent Neuro-Symbolic Agent Loop
  * Deconstructs natural language into goals, plans, tool actions, and validates outputs.
@@ -104,26 +177,21 @@ async function runAgentLoop(userMessage, onEvent = () => {}) {
   let rationale = '';
 
   const wantsFurnishing = prompt.includes('furnish') || prompt.includes('furniture') || prompt.includes('decor') || prompt.includes('styling') || prompt.includes('japandi') || prompt.includes('mid-century') || prompt.includes('minimalist') || (/\bbed\b/.test(prompt) && !prompt.includes('bedroom')) || prompt.includes('sofa');
-  const wantsGeneration = prompt.includes('generate') || prompt.includes('create') || prompt.includes('design layout') || prompt.includes('build') || prompt.includes('layout') || prompt.includes('floor plan') || prompt.includes('floorplan') || (prompt.includes('apartment') && !prompt.includes('furnish')) || (prompt.includes('studio') && !prompt.includes('furnish')) || (prompt.includes('bedroom') && !prompt.includes('furnish') && !prompt.includes('decor'));
+  const wantsGeneration = prompt.includes('generate') || prompt.includes('create') || prompt.includes('design layout') || prompt.includes('build') || prompt.includes('layout') || prompt.includes('floor plan') || prompt.includes('floorplan') || prompt.includes('1bedroom') || prompt.includes('bedroom') || prompt.includes('kitchen') || prompt.includes('studio') || prompt.includes('house');
 
-  if (wantsGeneration) {
+  if (prompt === 'clear' || prompt === '/clear' || prompt === 'reset' || prompt === '/reset' || prompt.includes('clear') || prompt.includes('reset') || prompt.includes('delete all') || prompt.includes('wipe')) {
+    selectedTool = 'clearProject';
+    toolArgs = {};
+    rationale = 'Purging all spatial entities and resetting the Neo4j graph.';
+  } else if (wantsGeneration) {
     selectedTool = 'generateSpatialLayout';
-    if (prompt.includes('studio')) {
-      toolArgs = { program: 'studio', targetSqMeters: 40 };
-      rationale = 'Decomposed requirement into compact urban studio layout with combined living/sleeping zone and full bath.';
-    } else if (prompt.includes('1-bed') || prompt.includes('1 bed') || prompt.includes('one bed')) {
-      toolArgs = { program: '1-bedroom', targetSqMeters: 60 };
-      rationale = 'Formulating 1-bedroom suite with distinct private bedroom, en-suite bath, and open-plan kitchen/living.';
-    } else if (prompt.includes('3-bed') || prompt.includes('penthouse')) {
-      toolArgs = { program: '3-bedroom-penthouse', targetSqMeters: 135 };
-      rationale = 'Formulating haute penthouse suite with primary master wing, multiple guest suites, and grand salon.';
-    } else if (prompt.includes('office') || prompt.includes('work')) {
-      toolArgs = { program: 'office', targetSqMeters: 140 };
-      rationale = 'Formulating executive corporate creative office suite with conference hall, reception, and workstations.';
-    } else {
-      toolArgs = { program: '2-bedroom', targetSqMeters: 85 };
-      rationale = 'Formulating 2-bedroom residential program with public/private spatial zoning, primary suite, and guest room.';
-    }
+    const parsed = parseRoomProgramFromPrompt(userMessage);
+    toolArgs = {
+      program: parsed.program,
+      targetSqMeters: parsed.targetSqMeters,
+      customRooms: parsed.customRooms
+    };
+    rationale = parsed.rationale;
   } else if (wantsFurnishing) {
     selectedTool = 'furnishInteriorSpaces';
     let style = 'japandi';
@@ -163,14 +231,10 @@ async function runAgentLoop(userMessage, onEvent = () => {}) {
       height: isWindow ? 1.5 : 2.1
     };
     rationale = `Preparing to puncture a new ${isWindow ? 'daylight window' : 'egress door'} into the nearest available wall boundary.`;
-  } else if (prompt.includes('clear') || prompt.includes('reset') || prompt.includes('delete all')) {
-    selectedTool = 'clearProject';
-    rationale = 'Purging all spatial entities and resetting the Neo4j graph.';
   } else if (prompt.includes('status') || prompt.includes('info') || prompt.includes('stats') || prompt.includes('area')) {
     selectedTool = 'inspectProjectTopology';
     rationale = 'Querying semantic graph for spatial topology and area metrics.';
   } else {
-    // Default fallback: inspect or propose an architectural action
     selectedTool = 'inspectProjectTopology';
     rationale = 'Interpreted as general architectural inquiry. Querying graph state.';
   }

@@ -201,6 +201,63 @@
             color: var(--text-primary);
         }
 
+        .graph-mode-toggle {
+            display: inline-flex;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-soft);
+            border-radius: 9999px;
+            padding: 3px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            gap: 2px;
+        }
+
+        .btn-graph-mode {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            border-radius: 9999px;
+            padding: 6px 13px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-graph-mode:hover {
+            color: var(--champagne);
+        }
+
+        .btn-graph-mode.active {
+            background: rgba(232, 180, 184, 0.22);
+            color: var(--champagne);
+            box-shadow: 0 0 10px rgba(232, 180, 184, 0.25);
+            font-weight: 600;
+        }
+
+        .btn-clear {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(200, 109, 81, 0.18);
+            border: 1px solid rgba(200, 109, 81, 0.5);
+            color: var(--champagne);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 7px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-clear:hover {
+            background: rgba(200, 109, 81, 0.38);
+            border-color: var(--terracotta);
+            color: #ffffff;
+            box-shadow: 0 0 14px rgba(200, 109, 81, 0.4);
+            transform: translateY(-1px);
+        }
+
         .graph-legend {
             position: absolute;
             bottom: 24px;
@@ -872,6 +929,10 @@
                     <span id="graph-node-count" class="graph-count-tag">0 Nodes • 0 Edges</span>
                 </div>
                 <div class="graph-hud-actions">
+                    <div class="graph-mode-toggle">
+                        <button id="graph-mode-semantic" class="btn-graph-mode active" title="Semantic topology: Clean layout of Rooms, Doors, Furniture & Connections">🌿 Semantic</button>
+                        <button id="graph-mode-bim" class="btn-graph-mode" title="Full BIM topology: All structural Wall and Floor nodes">🏗️ Full BIM</button>
+                    </div>
                     <button id="graph-physics-btn" class="btn-graph-action" title="Toggle spring simulation physics">⏸️ Freeze</button>
                     <button id="graph-reset-btn" class="btn-graph-action" title="Re-center graph view">🎯 Center</button>
                 </div>
@@ -882,7 +943,8 @@
                 <div class="legend-item"><span class="legend-dot" style="background:#e8b4b8; box-shadow:0 0 8px #e8b4b8;"></span> Room</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#d4a373;"></span> Furniture</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#f7d6d0;"></span> Opening</div>
-                <div class="legend-item"><span class="legend-dot" style="background:#8e7a96;"></span> Wall</div>
+                <div class="legend-item bim-only-legend" style="display:none;"><span class="legend-dot" style="background:#8e7a96;"></span> Wall</div>
+                <div class="legend-item bim-only-legend" style="display:none;"><span class="legend-dot" style="background:#c86d51;"></span> Floor</div>
                 <div class="legend-item"><span class="legend-line" style="border-top:2px dashed #eed9c4;"></span> Adjacency</div>
                 <div class="legend-item"><span class="legend-line" style="background:#52b788; height:2px;"></span> Circulation</div>
             </div>
@@ -935,7 +997,7 @@
                 <div class="badge-dot"></div>
                 <span id="code-status-text">IBC Validating</span>
             </div>
-            <button id="clear-btn" class="btn-secondary">Clear</button>
+            <button id="clear-btn" class="btn-clear" title="Instant Reset: Clear 3D canvas, Knowledge Graph, and Neo4j database">🧹 Clear Scene</button>
             <button id="reset-cam-btn" class="btn-secondary">Reset View</button>
         </div>
     </header>
@@ -1620,8 +1682,10 @@
                     sceneEntities.furniture.set(item.id, fMesh);
                 });
             }
-            if (state.graph && typeof hydrateKnowledgeGraph === 'function') {
-                hydrateKnowledgeGraph(state.graph);
+            window.latestProjectState = state;
+            const targetGraph = (window.currentGraphMode === 'bim' && state.bimGraph) ? state.bimGraph : state.graph;
+            if (targetGraph && typeof hydrateKnowledgeGraph === 'function') {
+                hydrateKnowledgeGraph(targetGraph);
             }
             updateCodeStatus();
         }
@@ -1720,11 +1784,39 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        async function executeClearScene() {
+            clearThreeScene();
+            clearKnowledgeGraph();
+            selectedObject = null;
+            const dimHud = document.getElementById('dimension-hud');
+            if (dimHud) dimHud.style.display = 'none';
+            camera.position.set(16, 18, 24);
+            orbitControls.target.set(0, 1, 0);
+            orbitControls.update();
+            appendMessage('assistant', '🧹 **Atelier Reset Complete**: 3D spatial scene, topological knowledge graph, and Neo4j database have been cleared to an empty atelier canvas.');
+
+            try {
+                const res = await fetch('/api/clear', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    updateStatus();
+                }
+            } catch (err) {
+                console.error('Error clearing project:', err);
+            }
+        }
+
         async function sendUserPrompt(promptText) {
             if (!promptText || promptText.trim() === '') return;
             const text = promptText.trim();
             userInput.value = '';
             appendMessage('user', text);
+
+            const pLower = text.toLowerCase();
+            if (pLower === 'clear' || pLower === '/clear' || pLower === 'reset' || pLower === '/reset' || pLower === 'wipe' || pLower === 'clear scene' || pLower === 'delete all') {
+                executeClearScene();
+                return;
+            }
 
             sendBtn.disabled = true;
             sendBtn.textContent = 'Curating...';
@@ -1767,9 +1859,7 @@
             });
         });
 
-        document.getElementById('clear-btn').addEventListener('click', () => {
-            sendUserPrompt('Clear scene and reset the graph');
-        });
+        document.getElementById('clear-btn').addEventListener('click', executeClearScene);
 
         document.getElementById('reset-cam-btn').addEventListener('click', () => {
             camera.position.set(16, 18, 24);
@@ -2391,6 +2481,41 @@
         if (graphResetBtn) {
             graphResetBtn.addEventListener('click', () => {
                 graphResetCenter();
+            });
+        }
+
+        window.currentGraphMode = 'semantic';
+        const graphModeSemanticBtn = document.getElementById('graph-mode-semantic');
+        const graphModeBimBtn = document.getElementById('graph-mode-bim');
+
+        function updateGraphLegendVisibility() {
+            const bimLegends = document.querySelectorAll('.bim-only-legend');
+            bimLegends.forEach(el => {
+                el.style.display = (window.currentGraphMode === 'bim') ? 'flex' : 'none';
+            });
+        }
+
+        if (graphModeSemanticBtn) {
+            graphModeSemanticBtn.addEventListener('click', () => {
+                window.currentGraphMode = 'semantic';
+                graphModeSemanticBtn.classList.add('active');
+                if (graphModeBimBtn) graphModeBimBtn.classList.remove('active');
+                updateGraphLegendVisibility();
+                if (window.latestProjectState && window.latestProjectState.graph) {
+                    hydrateKnowledgeGraph(window.latestProjectState.graph);
+                }
+            });
+        }
+
+        if (graphModeBimBtn) {
+            graphModeBimBtn.addEventListener('click', () => {
+                window.currentGraphMode = 'bim';
+                graphModeBimBtn.classList.add('active');
+                if (graphModeSemanticBtn) graphModeSemanticBtn.classList.remove('active');
+                updateGraphLegendVisibility();
+                if (window.latestProjectState && window.latestProjectState.bimGraph) {
+                    hydrateKnowledgeGraph(window.latestProjectState.bimGraph);
+                }
             });
         }
 

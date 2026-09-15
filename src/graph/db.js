@@ -88,12 +88,14 @@ async function withSession(workFn) {
 }
 
 // Helper: Compile interactive 2D/3D Graph Network payload
-function buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies = [], connections = [] }) {
+// mode: 'semantic' (default: clean Room + Circulation + Opening + Furniture topology) vs 'full' / 'bim' (all walls & floors)
+function buildGraphTopology({ rooms = [], floors = [], walls = [], openings = [], furniture = [], adjacencies = [], connections = [] }, mode = 'semantic') {
   const nodes = [];
   const edges = [];
   const seenNodes = new Set();
+  const isFullBim = (mode === 'full' || mode === 'bim');
 
-  // Add Rooms (Hub nodes)
+  // 1. Add Rooms (Hub nodes)
   rooms.forEach(r => {
     if (!seenNodes.has(r.id)) {
       seenNodes.add(r.id);
@@ -114,43 +116,47 @@ function buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacen
     }
   });
 
-  // Add Floors
-  floors.forEach(f => {
-    if (!seenNodes.has(f.id)) {
-      seenNodes.add(f.id);
-      nodes.push({
-        id: f.id,
-        label: f.name || 'Floor',
-        group: 'floor',
-        size: 14,
-        color: '#c86d51', // Terracotta
-        strokeColor: '#e07a5f',
-        x: f.x,
-        z: f.z,
-        data: { ...f }
-      });
-    }
-  });
+  // 2. Add Floors (Only in Full BIM mode to prevent visual clutter)
+  if (isFullBim) {
+    floors.forEach(f => {
+      if (!seenNodes.has(f.id)) {
+        seenNodes.add(f.id);
+        nodes.push({
+          id: f.id,
+          label: f.name || 'Floor',
+          group: 'floor',
+          size: 14,
+          color: '#c86d51', // Terracotta
+          strokeColor: '#e07a5f',
+          x: f.x,
+          z: f.z,
+          data: { ...f }
+        });
+      }
+    });
+  }
 
-  // Add Walls
-  walls.forEach(w => {
-    if (!seenNodes.has(w.id)) {
-      seenNodes.add(w.id);
-      nodes.push({
-        id: w.id,
-        label: w.name || 'Wall',
-        group: 'wall',
-        size: 12,
-        color: '#8e7a96', // Slate Amethyst
-        strokeColor: '#b4a0bc',
-        x: w.x,
-        z: w.z,
-        data: { ...w }
-      });
-    }
-  });
+  // 3. Add Walls (Only in Full BIM mode to prevent visual clutter)
+  if (isFullBim) {
+    walls.forEach(w => {
+      if (!seenNodes.has(w.id)) {
+        seenNodes.add(w.id);
+        nodes.push({
+          id: w.id,
+          label: w.name || 'Wall',
+          group: 'wall',
+          size: 12,
+          color: '#8e7a96', // Slate Amethyst
+          strokeColor: '#b4a0bc',
+          x: w.x,
+          z: w.z,
+          data: { ...w }
+        });
+      }
+    });
+  }
 
-  // Add Openings (Doors/Windows)
+  // 4. Add Openings (Doors/Windows)
   openings.forEach(o => {
     if (!seenNodes.has(o.id)) {
       seenNodes.add(o.id);
@@ -158,7 +164,7 @@ function buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacen
         id: o.id,
         label: `${o.type === 'door' ? '🚪' : '🪟'} ${o.type || 'Opening'}`,
         group: 'opening',
-        size: 13,
+        size: 14,
         color: '#f7d6d0', // Blush
         strokeColor: '#eed9c4',
         x: o.x,
@@ -168,7 +174,7 @@ function buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacen
     }
   });
 
-  // Add Furniture
+  // 5. Add Furniture
   furniture.forEach(fu => {
     if (!seenNodes.has(fu.id)) {
       seenNodes.add(fu.id);
@@ -187,31 +193,34 @@ function buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacen
     }
   });
 
-  // Structural Edges (Room -> Floor, Room -> Wall, Wall -> Opening, Room -> Furniture)
-  rooms.forEach(r => {
-    if (r.floor && r.floor.id) {
-      edges.push({ id: `e_${r.id}_${r.floor.id}`, source: r.id, target: r.floor.id, type: 'HAS_FLOOR', color: 'rgba(200, 109, 81, 0.45)' });
-    }
-    if (r.walls && Array.isArray(r.walls)) {
-      r.walls.forEach(w => {
-        edges.push({ id: `e_${r.id}_${w.id}`, source: r.id, target: w.id, type: 'HAS_WALL', color: 'rgba(142, 122, 150, 0.45)' });
-      });
-    }
-  });
+  // 6. Structural Edges (Room -> Floor, Room -> Wall, Wall -> Opening)
+  if (isFullBim) {
+    rooms.forEach(r => {
+      if (r.floor && r.floor.id) {
+        edges.push({ id: `e_${r.id}_${r.floor.id}`, source: r.id, target: r.floor.id, type: 'HAS_FLOOR', color: 'rgba(200, 109, 81, 0.45)' });
+      }
+      if (r.walls && Array.isArray(r.walls)) {
+        r.walls.forEach(w => {
+          edges.push({ id: `e_${r.id}_${w.id}`, source: r.id, target: w.id, type: 'HAS_WALL', color: 'rgba(142, 122, 150, 0.45)' });
+        });
+      }
+    });
 
-  openings.forEach(o => {
-    if (o.wallId) {
-      edges.push({ id: `e_${o.wallId}_${o.id}`, source: o.wallId, target: o.id, type: 'HAS_OPENING', color: 'rgba(247, 214, 208, 0.6)' });
-    }
-  });
+    openings.forEach(o => {
+      if (o.wallId) {
+        edges.push({ id: `e_${o.wallId}_${o.id}`, source: o.wallId, target: o.id, type: 'HAS_OPENING', color: 'rgba(247, 214, 208, 0.6)' });
+      }
+    });
+  }
 
+  // 7. Furniture containment edges (Room -> Furniture)
   furniture.forEach(fu => {
     if (fu.roomId) {
       edges.push({ id: `e_${fu.roomId}_${fu.id}`, source: fu.roomId, target: fu.id, type: 'CONTAINS_FURNITURE', color: 'rgba(212, 163, 115, 0.55)' });
     }
   });
 
-  // Topological Adjacency Edges (Room <--> Room)
+  // 8. Topological Adjacency Edges (Room <--> Room)
   const seenAdj = new Set();
   adjacencies.forEach(adj => {
     const key = [adj.source || adj.roomAId, adj.target || adj.roomBId].sort().join('__');
@@ -230,7 +239,7 @@ function buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacen
     }
   });
 
-  // Circulation Edges (Doorway paths)
+  // 9. Circulation Edges (Doorway paths)
   connections.forEach((conn, idx) => {
     edges.push({
       id: `conn_${idx}_${conn.source}_${conn.target}`,
@@ -244,7 +253,7 @@ function buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacen
     });
   });
 
-  return { nodes, edges };
+  return { nodes, edges, mode: isFullBim ? 'bim' : 'semantic' };
 }
 
 // --- PROJECT GRAPH REPOSITORY METHODS ---
@@ -319,7 +328,8 @@ async function getProjectState() {
         connections = inMemoryStore.connections;
       }
 
-      const graph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections });
+      const graph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'semantic');
+      const bimGraph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'bim');
 
       return {
         isConnected: true,
@@ -331,7 +341,8 @@ async function getProjectState() {
         furniture,
         adjacencies,
         connections,
-        graph
+        graph,
+        bimGraph
       };
     });
   }
@@ -345,7 +356,8 @@ async function getProjectState() {
   const adjacencies = inMemoryStore.adjacencies || [];
   const connections = inMemoryStore.connections || [];
 
-  const graph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections });
+  const graph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'semantic');
+  const bimGraph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'bim');
 
   return {
     isConnected: false,
@@ -357,7 +369,8 @@ async function getProjectState() {
     furniture,
     adjacencies,
     connections,
-    graph
+    graph,
+    bimGraph
   };
 }
 
