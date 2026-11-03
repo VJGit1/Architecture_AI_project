@@ -309,7 +309,7 @@ app.post('/api/clear', async (req, res) => {
 
 // Start Server & Probe Neo4j
 app.listen(port, async () => {
-  console.log(`🚀 Architecture AI Platform (v3.0 Neuro-Symbolic) running at http://localhost:${port}`);
+  console.log(`Room fit studio running at http://localhost:${port}`);
   await db.checkConnection();
   try {
     const seed = await catalogStore.seedCatalog();
