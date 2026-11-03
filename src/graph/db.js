@@ -10,9 +10,16 @@ const uri = process.env.NEO4J_URI || 'neo4j://localhost:7687';
 const user = process.env.NEO4J_USER || 'neo4j';
 const password = process.env.NEO4J_PASSWORD || 'qwerty123';
 
+// ROOM_FIT_OFFLINE=1 keeps everything in memory (used by the eval script so it never touches a real graph).
+const forceOffline = process.env.ROOM_FIT_OFFLINE === '1';
+
 let driver = null;
 let isConnected = false;
 let connectionAttempted = false;
+let layoutResetCount = 0;
+
+// Labels that survive clearAll: the catalog and saved shopper sessions are not part of a room.
+const PRESERVED_LABELS = ['Product', 'Collection', 'Feature', 'ShopperSession'];
 
 // Resilient In-Memory Graph Store (used when Neo4j is offline or during testing)
 const inMemoryStore = {
@@ -21,11 +28,13 @@ const inMemoryStore = {
   floors: new Map(),
   openings: new Map(),
   furniture: new Map(),
+  products: new Map(),
   adjacencies: [],
   connections: []
 };
 
 function initDriver() {
+  if (forceOffline) return null;
   if (driver) return driver;
   try {
     driver = neo4j.driver(
@@ -794,8 +803,9 @@ async function createFurniture({
   return fData;
 }
 
-// Clear all nodes in project
+// Clear the room layout. Catalog products and shopper sessions are kept.
 async function clearAll() {
+  layoutResetCount++;
   inMemoryStore.rooms.clear();
   inMemoryStore.walls.clear();
   inMemoryStore.floors.clear();
@@ -806,10 +816,96 @@ async function clearAll() {
 
   if (isConnected) {
     await withSession(async (session) => {
-      await session.run('MATCH (n) DETACH DELETE n');
+      await session.run(
+        'MATCH (n) WHERE none(label IN labels(n) WHERE label IN $preserved) DETACH DELETE n',
+        { preserved: PRESERVED_LABELS }
+      );
     });
   }
-  return { success: true, message: 'All spatial nodes and relationships cleared.' };
+  return { success: true, message: 'Room layout cleared. Catalog kept.' };
+}
+
+// --- CATALOG PRODUCT GRAPH ---
+
+function toPlainProduct(props, features) {
+  return {
+    id: props.id,
+    name: props.name,
+    role: props.role,
+    width: Number(props.width),
+    depth: Number(props.depth),
+    height: Number(props.height),
+    price: Number(props.price),
+    collection: props.collection,
+    style: props.style,
+    features: Array.isArray(features) ? features : (props.features || []),
+    reason: props.reason
+  };
+}
+
+// Upsert products: always into memory, and into Neo4j as (:Product)-[:IN_COLLECTION]->(:Collection) and -[:HAS_FEATURE]->(:Feature).
+async function upsertProducts(products = [], collections = []) {
+  products.forEach(p => inMemoryStore.products.set(p.id, { ...p, features: [...(p.features || [])] }));
+
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run(
+        `UNWIND $collections AS c
+         MERGE (col:Collection {name: c.name})
+         SET col.style = c.style, col.note = c.note`,
+        { collections }
+      );
+      await session.run(
+        `UNWIND $products AS p
+         MERGE (prod:Product {id: p.id})
+         SET prod.name = p.name, prod.role = p.role, prod.width = p.width, prod.depth = p.depth,
+             prod.height = p.height, prod.price = p.price, prod.collection = p.collection,
+             prod.style = p.style, prod.features = p.features, prod.reason = p.reason
+         WITH prod, p
+         MERGE (col:Collection {name: p.collection})
+         MERGE (prod)-[:IN_COLLECTION]->(col)
+         WITH prod, p
+         UNWIND p.features AS featureName
+         MERGE (f:Feature {name: featureName})
+         MERGE (prod)-[:HAS_FEATURE]->(f)`,
+        { products }
+      );
+    });
+  }
+  return { success: true, count: products.length, persistedTo: isConnected ? 'neo4j' : 'in-memory' };
+}
+
+// Query products by role and price ceiling. Neo4j is the source when connected.
+async function queryProducts({ roles = null, maxPrice = null } = {}) {
+  if (isConnected) {
+    const rows = await withSession(async (session) => {
+      const res = await session.run(
+        `MATCH (p:Product)
+         WHERE ($roles IS NULL OR p.role IN $roles) AND ($maxPrice IS NULL OR p.price <= $maxPrice)
+         OPTIONAL MATCH (p)-[:HAS_FEATURE]->(f:Feature)
+         RETURN p, collect(f.name) AS features
+         ORDER BY p.price DESC`,
+        { roles, maxPrice: maxPrice === null ? null : Number(maxPrice) }
+      );
+      return res.records.map(r => toPlainProduct(r.get('p').properties, r.get('features')));
+    });
+    if (rows && rows.length > 0) return rows;
+  }
+
+  return Array.from(inMemoryStore.products.values())
+    .filter(p => !roles || roles.includes(p.role))
+    .filter(p => maxPrice === null || p.price <= maxPrice)
+    .sort((a, b) => b.price - a.price)
+    .map(p => ({ ...p, features: [...p.features] }));
+}
+
+async function getProduct(id) {
+  if (inMemoryStore.products.has(id)) {
+    const p = inMemoryStore.products.get(id);
+    return { ...p, features: [...p.features] };
+  }
+  const rows = await queryProducts({});
+  return rows.find(p => p.id === id) || null;
 }
 
 module.exports = {
@@ -823,7 +919,11 @@ module.exports = {
   updateRoomTransform,
   clearFurniture,
   clearAll,
+  upsertProducts,
+  queryProducts,
+  getProduct,
   inMemoryStore,
+  getLayoutResetCount: () => layoutResetCount,
   getStatus: () => ({
     isConnected,
     uri,
@@ -833,6 +933,7 @@ module.exports = {
       floors: inMemoryStore.floors.size,
       openings: inMemoryStore.openings.size,
       furniture: inMemoryStore.furniture.size,
+      products: inMemoryStore.products.size,
       adjacencies: inMemoryStore.adjacencies.length,
       connections: inMemoryStore.connections.length
     }

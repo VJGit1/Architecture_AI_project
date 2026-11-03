@@ -11,6 +11,7 @@ const { ArchitecturalBenchmarkSuite } = require('./src/agent/evaluator');
 const { navMeshAStar } = require('./src/ai/pathfindingAStar');
 const { llmProvider } = require('./src/ai/llmProvider');
 const { precedentRag } = require('./src/ai/precedentRag');
+const catalogStore = require('./src/catalog/catalogStore');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -29,6 +30,7 @@ app.get('/api/status', async (req, res) => {
       ...db.getStatus(),
       isConnected
     },
+    catalog: catalogStore.getSeedStatus(),
     aiEngine: {
       provider: llmProvider.getActiveProviderName(),
       cloudLLMConfigured: llmProvider.isCloudLLMConfigured(),
@@ -37,6 +39,18 @@ app.get('/api/status', async (req, res) => {
     },
     version: '3.0.0-neuro-symbolic'
   });
+});
+
+// --- HARBOR & CO. CATALOG ---
+app.get('/api/catalog', async (req, res) => {
+  try {
+    const roles = req.query.role ? String(req.query.role).split(',') : null;
+    const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
+    const products = await catalogStore.listProducts({ roles, maxPrice });
+    res.json({ success: true, catalog: catalogStore.getSeedStatus(), products });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // --- QUANTITATIVE BENCHMARK HARNESS ---
@@ -247,4 +261,10 @@ app.post('/api/clear', async (req, res) => {
 app.listen(port, async () => {
   console.log(`🚀 Architecture AI Platform (v3.0 Neuro-Symbolic) running at http://localhost:${port}`);
   await db.checkConnection();
+  try {
+    const seed = await catalogStore.seedCatalog();
+    console.log(`Seeded ${seed.count} Harbor & Co. products (${seed.persistedTo}).`);
+  } catch (err) {
+    console.warn(`Catalog seed fell back to memory only: ${err.message}`);
+  }
 });
