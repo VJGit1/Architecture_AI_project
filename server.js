@@ -12,6 +12,7 @@ const { navMeshAStar } = require('./src/ai/pathfindingAStar');
 const { llmProvider } = require('./src/ai/llmProvider');
 const { precedentRag } = require('./src/ai/precedentRag');
 const catalogStore = require('./src/catalog/catalogStore');
+const roomAgent = require('./src/shopper/roomAgent');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -48,6 +49,55 @@ app.get('/api/catalog', async (req, res) => {
     const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
     const products = await catalogStore.listProducts({ roles, maxPrice });
     res.json({ success: true, catalog: catalogStore.getSeedStatus(), products });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --- ROOM FIT SHOPPER AGENT ---
+
+// One shopper turn. With { stream: true } the response is NDJSON: one line per tool step, then a final "done" line.
+app.post('/api/shopper/turn', async (req, res) => {
+  const { sessionId = null, message = '', fields = null, stream = false } = req.body || {};
+  if (!String(message).trim() && !(fields && (fields.width || fields.budget))) {
+    return res.status(400).json({ success: false, error: 'Describe the room or fill in its size and budget.' });
+  }
+
+  const writeLine = (obj) => res.write(`${JSON.stringify(obj)}\n`);
+  if (stream) {
+    res.setHeader('Content-Type', 'application/x-ndjson');
+    res.setHeader('Cache-Control', 'no-cache');
+  }
+
+  try {
+    const result = await roomAgent.runShopperTurn({ sessionId, message, fields }, (evt) => {
+      if (stream) writeLine(evt);
+    });
+    const state = await db.getProjectState();
+    const payload = { success: true, ...result, state };
+    if (stream) {
+      writeLine({ type: 'done', ...payload });
+      res.end();
+    } else {
+      res.json(payload);
+    }
+  } catch (error) {
+    console.error('Shopper turn error:', error);
+    if (stream) {
+      writeLine({ type: 'error', error: error.message });
+      res.end();
+    } else {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+});
+
+app.get('/api/shopper/session/:id', async (req, res) => {
+  try {
+    const session = await roomAgent.getShopperSession(req.params.id);
+    if (!session) return res.status(404).json({ success: false, error: 'Session not found.' });
+    const state = await db.getProjectState();
+    res.json({ success: true, session, state });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

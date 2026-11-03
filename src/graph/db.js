@@ -29,6 +29,7 @@ const inMemoryStore = {
   openings: new Map(),
   furniture: new Map(),
   products: new Map(),
+  sessions: new Map(),
   adjacencies: [],
   connections: []
 };
@@ -908,8 +909,42 @@ async function getProduct(id) {
   return rows.find(p => p.id === id) || null;
 }
 
+// --- SHOPPER SESSIONS ---
+
+async function saveShopperSession(session) {
+  const json = JSON.stringify(session);
+  inMemoryStore.sessions.set(session.id, json);
+  if (isConnected) {
+    await withSession(async (s) => {
+      await s.run(
+        'MERGE (ss:ShopperSession {id: $id}) SET ss.json = $json, ss.updatedAt = $updatedAt',
+        { id: session.id, json, updatedAt: session.updatedAt || new Date().toISOString() }
+      );
+    });
+  }
+  return { success: true };
+}
+
+async function loadShopperSession(id) {
+  if (!id) return null;
+  if (inMemoryStore.sessions.has(id)) return JSON.parse(inMemoryStore.sessions.get(id));
+  if (isConnected) {
+    const json = await withSession(async (s) => {
+      const res = await s.run('MATCH (ss:ShopperSession {id: $id}) RETURN ss.json AS json', { id });
+      return res.records[0] ? res.records[0].get('json') : null;
+    });
+    if (json) {
+      inMemoryStore.sessions.set(id, json);
+      return JSON.parse(json);
+    }
+  }
+  return null;
+}
+
 module.exports = {
   checkConnection,
+  saveShopperSession,
+  loadShopperSession,
   getProjectState,
   createRoom,
   createOpening,
