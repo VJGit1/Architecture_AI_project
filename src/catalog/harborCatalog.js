@@ -25,7 +25,7 @@ const PRODUCTS = [
   { id: 'HC-SEC-098', name: 'Loft Compact Sectional 98', role: 'sectional', width: 2.49, depth: 1.55, height: 0.81, price: 1390, collection: 'Loft', style: 'modern', features: ['compact'], reason: 'An L-shape scaled for smaller rooms at {width} m wide.' },
 
   // Chairs
-  { id: 'HC-CHR-031', name: 'Harbor Slipcover Chair', role: 'chair', width: 0.84, depth: 0.89, height: 0.84, price: 449, collection: 'Harbor', style: 'coastal', features: ['performance_fabric'], reason: 'A second seat by the table in the same performance weave.' },
+  { id: 'HC-CHR-031', name: 'Harbor Slipcover Chair', role: 'chair', width: 0.84, depth: 0.89, height: 0.84, price: 449, collection: 'Harbor', style: 'coastal', features: ['performance_fabric'], reason: 'A second seat by the table in performance fabric.' },
   { id: 'HC-CHR-028', name: 'Field Swivel Chair', role: 'chair', width: 0.79, depth: 0.84, height: 0.81, price: 529, collection: 'Field', style: 'relaxed', features: ['swivel'], reason: 'Swivels between the conversation and the screen.' },
   { id: 'HC-CHR-026', name: 'Loft Sling Chair', role: 'chair', width: 0.71, depth: 0.79, height: 0.76, price: 319, collection: 'Loft', style: 'modern', features: ['compact'], reason: 'A light {width} m chair that does not crowd the table.' },
   { id: 'HC-CHR-034', name: 'Field Oversized Chair', role: 'chair', width: 1.02, depth: 0.97, height: 0.86, price: 689, collection: 'Field', style: 'relaxed', features: ['performance_fabric', 'deep_seat'], reason: 'Room for two at {width} m wide, for a larger room.' },
@@ -44,8 +44,8 @@ const PRODUCTS = [
   { id: 'HC-MED-084', name: 'Loft 84 Media Wall', role: 'media', width: 2.13, depth: 0.46, height: 0.66, price: 849, collection: 'Loft', style: 'modern', features: ['fits_85in_tv', 'storage'], reason: 'Closed storage across {width} m of wall.' },
 
   // Rugs (depth runs toward the sofa)
-  { id: 'HC-RUG-058', name: 'Harbor Flatweave Rug 5x8', role: 'rug', width: 2.44, depth: 1.52, height: 0.01, price: 219, collection: 'Harbor', style: 'coastal', features: ['washable'], reason: 'Machine-washable flatweave sized to the table.' },
-  { id: 'HC-RUG-069', name: 'Loft Low-Pile Rug 6x9', role: 'rug', width: 2.74, depth: 1.83, height: 0.01, price: 329, collection: 'Loft', style: 'modern', features: ['washable', 'pet_friendly'], reason: 'Low pile that a vacuum and a dog both get along with.' },
+  { id: 'HC-RUG-058', name: 'Harbor Flatweave Rug 5x8', role: 'rug', width: 2.44, depth: 1.52, height: 0.01, price: 219, collection: 'Harbor', style: 'coastal', features: ['washable'], reason: 'A machine-washable flatweave, {width} m by {depth} m.' },
+  { id: 'HC-RUG-069', name: 'Loft Low-Pile Rug 6x9', role: 'rug', width: 2.74, depth: 1.83, height: 0.01, price: 329, collection: 'Loft', style: 'modern', features: ['washable', 'pet_friendly'], reason: 'Low pile that vacuums easily and goes in the wash.' },
   { id: 'HC-RUG-810', name: 'Field Wool Rug 8x10', role: 'rug', width: 3.05, depth: 2.44, height: 0.01, price: 549, collection: 'Field', style: 'relaxed', features: ['wool'], reason: 'Large enough for the front legs of every seat.' },
 
   // Beds
