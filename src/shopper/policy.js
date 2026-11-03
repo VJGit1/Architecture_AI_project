@@ -123,7 +123,7 @@ function nextTool(session) {
     }
     return {
       tool: 'swap_sku',
-      args: { slot: req.slot, maxPrice: req.maxPrice, preferRole: req.preferRole, direction: req.direction, collection: req.collection, reason: 'shopper' },
+      args: { slot: req.slot, skuId: req.skuId, maxPrice: req.maxPrice, maxPriceInclusive: req.maxPriceInclusive, preferRole: req.preferRole, direction: req.direction, collection: req.collection, reason: 'shopper' },
       why: 'the shopper asked to change one item'
     };
   }

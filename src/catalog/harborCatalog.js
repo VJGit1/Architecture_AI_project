@@ -15,7 +15,7 @@ const PRODUCTS = [
   { id: 'HC-SOF-084', name: 'Harbor 84 Sofa', role: 'sofa', width: 2.13, depth: 0.94, height: 0.84, price: 899, collection: 'Harbor', style: 'coastal', features: ['performance_fabric', 'removable_covers'], reason: 'Performance weave on a {width} m frame leaves {spare} m of open wall.' },
   { id: 'HC-SOF-090', name: 'Field 90 Performance Sofa', role: 'sofa', width: 2.29, depth: 0.99, height: 0.86, price: 1290, collection: 'Field', style: 'relaxed', features: ['performance_fabric', 'deep_seat'], reason: 'Stain-resistant performance fabric and a deep seat, {width} m on a {wall} m wall.' },
   { id: 'HC-SOF-096', name: 'Harbor 96 Grand Sofa', role: 'sofa', width: 2.44, depth: 1.02, height: 0.86, price: 1490, collection: 'Harbor', style: 'coastal', features: ['down_blend'], reason: 'The longest Harbor sofa; {width} m still clears {spare} m of the wall.' },
-  { id: 'HC-SOF-078', name: 'Loft 78 Sofa', role: 'sofa', width: 1.98, depth: 0.89, height: 0.81, price: 749, collection: 'Loft', style: 'modern', features: ['kiln_dried_frame'], reason: 'A {width} m sofa that keeps the walkway open in a {room} room.' },
+  { id: 'HC-SOF-078', name: 'Loft 78 Sofa', role: 'sofa', width: 1.98, depth: 0.89, height: 0.81, price: 749, collection: 'Loft', style: 'modern', features: ['kiln_dried_frame'], reason: 'A {width} m sofa that keeps the walkway open in the {room}.' },
   { id: 'HC-SOF-072', name: 'Loft 72 Apartment Sofa', role: 'sofa', width: 1.83, depth: 0.86, height: 0.79, price: 629, collection: 'Loft', style: 'modern', features: ['compact'], reason: 'Apartment depth of {depth} m for rooms where every step counts.' },
   { id: 'HC-SOF-080', name: 'Field 80 Slipcover Sofa', role: 'sofa', width: 2.03, depth: 0.97, height: 0.84, price: 999, collection: 'Field', style: 'relaxed', features: ['performance_fabric', 'washable_slipcover'], reason: 'Washable performance slipcover on a {width} m frame.' },
 
@@ -50,7 +50,7 @@ const PRODUCTS = [
 
   // Beds
   { id: 'HC-BED-QN', name: 'Harbor Queen Platform Bed', role: 'bed', width: 1.63, depth: 2.13, height: 1.12, price: 899, collection: 'Harbor', style: 'coastal', features: ['solid_oak'], reason: 'A queen at {width} m leaves room for nightstands on a {wall} m wall.' },
-  { id: 'HC-BED-KG', name: 'Field King Upholstered Bed', role: 'bed', width: 2.03, depth: 2.18, height: 1.22, price: 1290, collection: 'Field', style: 'relaxed', features: ['performance_fabric'], reason: 'King size in performance fabric for a {room} room.' },
+  { id: 'HC-BED-KG', name: 'Field King Upholstered Bed', role: 'bed', width: 2.03, depth: 2.18, height: 1.22, price: 1290, collection: 'Field', style: 'relaxed', features: ['performance_fabric'], reason: 'King size in performance fabric, {width} m on a {wall} m wall.' },
   { id: 'HC-BED-FL', name: 'Loft Full Metal Bed', role: 'bed', width: 1.42, depth: 1.98, height: 1.02, price: 499, collection: 'Loft', style: 'modern', features: ['compact'], reason: 'A full bed that keeps {spare} m of wall free.' },
 
   // Nightstands

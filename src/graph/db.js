@@ -767,7 +767,10 @@ async function createFurniture({
   z = 0,
   rotationY = 0,
   material = 'boucle',
-  style = 'japandi'
+  style = 'japandi',
+  skuId = null,
+  slot = null,
+  collection = null
 }) {
   const furnitureId = uuidv4();
   const fData = {
@@ -783,7 +786,10 @@ async function createFurniture({
     z,
     rotationY,
     material,
-    style
+    style,
+    skuId,
+    slot,
+    collection
   };
 
   if (isConnected) {
@@ -793,15 +799,30 @@ async function createFurniture({
         CREATE (fu:Furniture {
           id: $f.id, name: $f.name, type: $f.type, width: $f.width,
           length: $f.length, height: $f.height, x: $f.x, y: $f.y, z: $f.z,
-          rotationY: $f.rotationY, material: $f.material, style: $f.style
+          rotationY: $f.rotationY, material: $f.material, style: $f.style,
+          skuId: $f.skuId, slot: $f.slot, collection: $f.collection
         })
         CREATE (r)-[:CONTAINS_FURNITURE]->(fu)
+        WITH fu
+        OPTIONAL MATCH (p:Product {id: $f.skuId})
+        FOREACH (_ IN CASE WHEN p IS NULL THEN [] ELSE [1] END | MERGE (fu)-[:INSTANCE_OF]->(p))
       `, { roomId, f: fData });
     });
   }
 
   inMemoryStore.furniture.set(furnitureId, fData);
   return fData;
+}
+
+// Remove one placed piece (used when a single SKU is swapped).
+async function deleteFurniture(id) {
+  inMemoryStore.furniture.delete(id);
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run('MATCH (fu:Furniture {id: $id}) DETACH DELETE fu', { id });
+    });
+  }
+  return { success: true };
 }
 
 // Clear the room layout. Catalog products and shopper sessions are kept.
@@ -949,6 +970,7 @@ module.exports = {
   createRoom,
   createOpening,
   createFurniture,
+  deleteFurniture,
   createAdjacency,
   createConnection,
   updateRoomTransform,

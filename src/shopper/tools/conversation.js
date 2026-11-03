@@ -99,7 +99,10 @@ function localWhy(session) {
   if (swaps.length > 0) {
     const kept = session.cart.filter(l => !swaps.some(s => s.slot === l.slot)).map(l => SLOT_LABELS[l.slot] || l.slot);
     const swapped = swaps.map(s => s.newName).filter(Boolean).join(', ');
-    parts.push(`Swapped in the ${swapped}${kept.length ? `; the ${kept.join(', ')} stayed in place` : ''}.`);
+    const keptText = kept.length > 2
+      ? `${kept.slice(0, -1).join(', ')}, and ${kept[kept.length - 1]}`
+      : kept.join(' and ');
+    parts.push(`Swapped in the ${swapped} and kept the ${keptText || 'rest of the set'}.`);
   }
 
   if (seat && placement) {

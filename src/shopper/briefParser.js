@@ -2,7 +2,26 @@
 // Local compiler from a shopper's sentence to brief fields and swap requests.
 // Deterministic on purpose: sizes and budgets never come from a model.
 
+const { getSeedProducts } = require('../catalog/harborCatalog');
+
 const FT_TO_M = 0.3048;
+const ROLE_SLOT = { sofa: 'seat', sectional: 'seat', coffee_table: 'coffee_table', media: 'media', chair: 'chair', rug: 'rug', bed: 'bed', nightstand: 'nightstand' };
+
+// "the Harbor Sectional 108", "Harbor 84", or "HC-SOF-084" all name one SKU.
+function findNamedProduct(text) {
+  const lower = text.toLowerCase();
+  const products = getSeedProducts();
+  const aliases = p => {
+    const full = p.name.toLowerCase();
+    const short = full.replace(/ (performance |grand |apartment |slipcover )?(sofa|chair|bed|nightstand|rug.*|coffee table|media console|media stand|media wall)$/, '');
+    return [p.id.toLowerCase(), full, short].filter(a => a.split(' ').length >= 2 || a.includes('-'));
+  };
+  return products
+    .map(p => ({ p, hit: aliases(p).filter(a => lower.includes(a)).sort((a, b) => b.length - a.length)[0] }))
+    .filter(x => x.hit)
+    .sort((a, b) => b.hit.length - a.hit.length)
+    .map(x => x.p)[0] || null;
+}
 const UNIT = '(ft|feet|foot|\'|m|meters?|metres?)';
 const COMPASS = '(north|south|east|west)';
 
@@ -103,6 +122,7 @@ function parseSwap(text) {
 
   const priceMatch = text.match(/(?:under|below|less than|max(?:imum)?|at most|up to|no more than|<)\s*\$?\s*([\d,]+(?:\.\d+)?)\s*(k)?/i);
   const maxPrice = priceMatch ? toNumber(priceMatch[1], priceMatch[2]) : null;
+  const maxPriceInclusive = /\b(at most|up to|no more than|max(imum)?)\b/i.test(text);
 
   let preferRole = null;
   if (slot === 'seat') {
@@ -115,12 +135,19 @@ function parseSwap(text) {
   if (/\b(smaller|narrower|shorter|compact)\b/i.test(text)) direction = 'smaller';
   if (/\b(bigger|larger|longer|wider)\b/i.test(text)) direction = 'larger';
 
-  const collection = (target.match(/\b(harbor|field|loft)\b/i) || [])[1] || null;
+  const named = target ? findNamedProduct(target) : null;
+  if (named && ROLE_SLOT[named.role] === slot) {
+    preferRole = named.role;
+  }
+
+  const collection = named ? null : ((target.match(/\b(harbor|field|loft)\b/i) || [])[1] || null);
 
   return {
     type: 'swap',
     slot,
+    skuId: named && ROLE_SLOT[named.role] === slot ? named.id : null,
     maxPrice: maxPrice ? Math.round(maxPrice) : null,
+    maxPriceInclusive,
     preferRole,
     direction,
     collection: collection ? collection[0].toUpperCase() + collection.slice(1).toLowerCase() : null,
