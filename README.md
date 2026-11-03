@@ -8,15 +8,23 @@ Built with **Three.js**, **Neo4j**, and **Agentic AI**.
 
 ## ✨ Features
 
-- **🧠 Neuro-Symbolic Agentic Core**:
-  - Translates natural language requirements into architectural programs (studios, multi-bedroom residences, offices).
-  - Employs a ReAct reasoning loop ($\text{Perceive} \rightarrow \text{Plan} \rightarrow \text{Tool Action} \rightarrow \text{Verify} \rightarrow \text{Synthesize}$).
-  - Live streaming thought trace bubbles in the UI.
+- **🧠 Neuro-Symbolic Multi-Agent Orchestrator (`src/agent/agentCore.js`)**:
+  - Coordinates 4 specialized AI agents: **GraphRAG & Memory Agent**, **Lifestyle Architect Agent**, **Neuro-Symbolic Solver & Interior Energy Agent**, and **Closed-Loop Visual/Geometric Critic Agent**.
+  - Supports **OpenAI (GPT-4o)**, **Google Gemini (2.0 Flash)**, and an offline **Neuro-Symbolic Semantic Compiler** (`src/ai/llmProvider.js`).
+  - **Hybrid GraphRAG & Episodic Memory (`src/ai/precedentRag.js`)**: Embeds natural language prompts into a 64-dimensional semantic vector space to retrieve architectural precedents (*Kyoto Machiya*, *Parisian Haussmann*, *Case Study Glass Pavilion*, *Nordic Creative Atelier*) and remembers user lifestyle constraints across turns.
 
-- **🛋️ Interior Design & Bespoke Furnishing Engine**:
-  - Automatically places curated Architectural Digest furniture (curved bouclé sofas, platform beds, fluted marble kitchen islands, indoor olive trees).
-  - Preserves ergonomic human circulation clearances.
-  - Supports curated design aesthetics: **Japandi**, **Mid-Century Modern**, and **Warm Minimalist**.
+- **🔬 Simulated Annealing Topological Floor Solver (`src/agent/solver.js`)**:
+  - Optimizes room placement over **Architectural Bubble Graphs** (Attraction edges, Acoustic Repulsion edges, and Solar Azimuth orientation preferences).
+  - Guarantees **0.0000 m² overlap**, 100% exterior perimeter window exposure for habitable rooms (IBC 1205.1), and extracts exact 1D shared wall portal segments.
+
+- **🛋️ Continuous Energy-Based Interior Scene Optimizer (`src/ai/interiorEnergySolver.js`)**:
+  - Replaces static coordinate offsets with a declarative **Scene Graph DSL** and continuous pose optimizer that minimizes:
+    $$E(\mathbf{S}) = w_{\text{wall}} E_{\text{bounds}} + w_{\text{col}} E_{\text{OBB}} + w_{\text{door}} E_{\text{swing}} + w_{\text{rel}} E_{\text{prior}}$$
+  - Preserves $0.95\text{m}$ door-swing clearances and ergonomic walk-around buffers across **Japandi**, **Mid-Century Modern**, and **Warm Minimalist** aesthetics.
+
+- **🚶 2D NavMesh A\* Pathfinding & X-Ray Spatial Lenses (`src/ai/pathfindingAStar.js`)**:
+  - Discretizes floorplans into a 2D occupancy grid ($0.25\text{m}$ cells) and runs **8-connected A\* search** to compute human-cylinder walkability ratios and animated 3D circulation splines with an autonomous AI resident avatar.
+  - Interactive **☀️ Solar Daylight Lens**, **🚶 A\* Flow Lens**, **📷 Multimodal Moodboard/Sketch VLM Upload**, and **👁️ Closed-Loop VLM Viewport Critic**.
 
 - **🌅 Architectural Digest Lighting & Sun Simulation**:
   - Realistic sun angle simulation with soft contact shadows: **Golden Hour (3000K warm tone)**, **High Noon (daylight)**, and **Cozy Dusk (2700K recessed interior spotlights)**.

@@ -1,73 +1,80 @@
 // src/agent/tools.js
-// Spatial & Architectural Agent Tool Registry with Neuro-Symbolic Solver
+// Spatial & Architectural Agent Tool Registry with:
+//   - Simulated Annealing Topological Floorplan Solver (Bubble Graph attractions/repulsions + Solar orientation)
+//   - Exact Shared-Boundary Door Portals & Exterior Perimeter Daylight Windows
+//   - Continuous Energy-Based Interior Scene Optimizer (SDF collision + door swing + ergonomic clearances)
+//   - 2D NavMesh A* Circulation & Walkability Evaluator
+//   - Surgical Graph Diff Mutations (resize/re-orient rooms without wiping user's project)
 
 const db = require('../graph/db');
 const { SpatialConstraintSolver } = require('./solver');
+const { interiorEnergySolver } = require('../ai/interiorEnergySolver');
+const { navMeshAStar } = require('../ai/pathfindingAStar');
 
 const solver = new SpatialConstraintSolver();
 
 /**
- * Solves and generates an architectural floor plan layout using Neuro-Symbolic Constraint Satisfaction
+ * Solves and generates an architectural floor plan layout using Simulated Annealing over Bubble Graphs
  */
 async function generateSpatialLayout({
-  program = '2-bedroom-apartment', // 'studio' | '1-bedroom' | '2-bedroom' | '3-bedroom-penthouse' | 'office' | 'custom'
-  style = 'modern-open-concept',
+  program = '2-bedroom-apartment',
+  style = 'japandi',
   targetSqMeters = 85,
-  customRooms = null
+  customRooms = null,
+  bubbleGraph = null,
+  accessibilityRequired = false
 }) {
-  // Clear any previous scratch layout
+  // Clear previous scratch layout
   await db.clearAll();
 
-  // Architectural program specifications
   let requestedRooms = [];
 
   if (Array.isArray(customRooms) && customRooms.length > 0) {
     requestedRooms = customRooms;
   } else if (program.includes('studio') || targetSqMeters <= 45) {
     requestedRooms = [
-      { name: 'Living & Sleeping Studio', type: 'living', width: 6.2, length: 5.4, height: 2.8 },
-      { name: 'Kitchenette & Dining', type: 'kitchen', width: 3.8, length: 3.4, height: 2.8 },
-      { name: 'Full Bathroom', type: 'bathroom', width: 2.5, length: 2.6, height: 2.6 }
+      { name: 'Living & Sleeping Salon', type: 'living', width: 6.2, length: 5.4, height: 2.9, solarPreference: 'south', privacyLevel: 0.2 },
+      { name: 'Kitchenette & Espresso Bar', type: 'kitchen', width: 3.8, length: 3.4, height: 2.8, solarPreference: 'east', privacyLevel: 0.3 },
+      { name: 'Onsen Full Bathroom', type: 'bathroom', width: 2.5, length: 2.6, height: 2.6, solarPreference: 'core', privacyLevel: 0.85 }
     ];
   } else if (program.includes('1-bedroom') || targetSqMeters <= 65) {
     requestedRooms = [
-      { name: 'Grand Salon & Living', type: 'living', width: 5.6, length: 5.2, height: 2.9 },
-      { name: 'Open Kitchen & Bar', type: 'kitchen', width: 3.8, length: 4.0, height: 2.8 },
-      { name: 'Primary Bedroom Suite', type: 'bedroom', width: 4.4, length: 4.0, height: 2.8 },
-      { name: 'En-Suite Bathroom', type: 'bathroom', width: 2.6, length: 3.0, height: 2.6 }
+      { name: 'Grand Salon & Living', type: 'living', width: 5.6, length: 5.2, height: 2.9, solarPreference: 'south', privacyLevel: 0.15 },
+      { name: 'Open Kitchen & Tasting Bar', type: 'kitchen', width: 3.8, length: 4.0, height: 2.8, solarPreference: 'east', privacyLevel: 0.25 },
+      { name: 'Primary Bedroom Sanctuary', type: 'bedroom', width: 4.4, length: 4.0, height: 2.8, solarPreference: 'east', privacyLevel: 0.95 },
+      { name: 'En-Suite Spa Bathroom', type: 'bathroom', width: 2.6, length: 3.0, height: 2.6, solarPreference: 'core', privacyLevel: 0.85 }
     ];
   } else if (program.includes('3-bedroom') || program.includes('penthouse') || targetSqMeters >= 120) {
     requestedRooms = [
-      { name: 'Grand Salon', type: 'living', width: 7.2, length: 6.0, height: 3.2 },
-      { name: 'Chef Kitchen & Dining', type: 'kitchen', width: 4.8, length: 4.6, height: 3.0 },
-      { name: 'Primary Master Suite', type: 'bedroom', width: 5.0, length: 4.6, height: 3.0 },
-      { name: 'Primary Ensuite Bath', type: 'bathroom', width: 3.0, length: 3.2, height: 2.8 },
-      { name: 'Guest Bedroom 2', type: 'bedroom', width: 4.0, length: 3.8, height: 2.8 },
-      { name: 'Study / Guest Bed 3', type: 'bedroom', width: 3.8, length: 3.6, height: 2.8 },
-      { name: 'Powder Room', type: 'bathroom', width: 2.2, length: 2.2, height: 2.6 }
+      { name: 'Grand Reception Salon', type: 'living', width: 7.2, length: 6.0, height: 3.2, solarPreference: 'south', privacyLevel: 0.1 },
+      { name: 'Chef Kitchen & Dining', type: 'kitchen', width: 4.8, length: 4.6, height: 3.0, solarPreference: 'east', privacyLevel: 0.25 },
+      { name: 'Primary Master Suite', type: 'bedroom', width: 5.0, length: 4.6, height: 3.0, solarPreference: 'east', privacyLevel: 0.98 },
+      { name: 'Primary Ensuite Spa Bath', type: 'bathroom', width: 3.0, length: 3.2, height: 2.8, solarPreference: 'core', privacyLevel: 0.9 },
+      { name: 'Guest Bedroom Suite 2', type: 'bedroom', width: 4.0, length: 3.8, height: 2.8, solarPreference: 'west', privacyLevel: 0.85 },
+      { name: 'Acoustic Study / Bed 3', type: 'office', width: 3.8, length: 3.6, height: 2.8, solarPreference: 'north', privacyLevel: 0.75 },
+      { name: 'Sculptural Powder Room', type: 'bathroom', width: 2.4, length: 2.4, height: 2.6, solarPreference: 'core', privacyLevel: 0.6 }
     ];
   } else if (program.includes('office')) {
     requestedRooms = [
-      { name: 'Reception & Welcome Lounge', type: 'living', width: 6.0, length: 5.0, height: 3.0 },
-      { name: 'Executive Conference Room', type: 'office', width: 5.5, length: 4.5, height: 3.0 },
-      { name: 'Open Creative Studio', type: 'office', width: 6.5, length: 5.5, height: 3.0 },
-      { name: 'Private Executive Office', type: 'office', width: 4.2, length: 3.8, height: 2.8 },
-      { name: 'Team Cafe & Pantry', type: 'kitchen', width: 3.6, length: 3.4, height: 2.8 },
-      { name: 'Restroom Suite', type: 'bathroom', width: 2.8, length: 2.8, height: 2.6 }
+      { name: 'Reception & Gallery Lounge', type: 'living', width: 6.0, length: 5.0, height: 3.1, solarPreference: 'south', privacyLevel: 0.1 },
+      { name: 'Executive Boardroom', type: 'office', width: 5.5, length: 4.5, height: 3.0, solarPreference: 'west', privacyLevel: 0.6 },
+      { name: 'Open Creative & AI Atelier', type: 'office', width: 6.5, length: 5.5, height: 3.1, solarPreference: 'east', privacyLevel: 0.4 },
+      { name: 'Partner Focus Suite', type: 'office', width: 4.2, length: 3.8, height: 2.9, solarPreference: 'north', privacyLevel: 0.85 },
+      { name: 'Artisanal Cafe & Pantry', type: 'kitchen', width: 3.6, length: 3.4, height: 2.8, solarPreference: 'east', privacyLevel: 0.25 },
+      { name: 'Wellness Restroom Suite', type: 'bathroom', width: 2.8, length: 2.8, height: 2.7, solarPreference: 'core', privacyLevel: 0.8 }
     ];
   } else {
-    // Default: 2-bedroom luxury residence
     requestedRooms = [
-      { name: 'Living & Dining Area', type: 'living', width: 6.6, length: 5.6, height: 3.0 },
-      { name: 'Gourmet Kitchen', type: 'kitchen', width: 4.2, length: 4.4, height: 3.0 },
-      { name: 'Primary Bedroom', type: 'bedroom', width: 4.6, length: 4.2, height: 2.8 },
-      { name: 'Primary Bathroom', type: 'bathroom', width: 2.6, length: 3.0, height: 2.6 },
-      { name: 'Guest Bedroom / Office', type: 'bedroom', width: 3.8, length: 3.8, height: 2.8 }
+      { name: 'Living & Dining Salon', type: 'living', width: 6.6, length: 5.6, height: 3.0, solarPreference: 'south', privacyLevel: 0.12 },
+      { name: 'Gourmet Chef Kitchen', type: 'kitchen', width: 4.2, length: 4.4, height: 3.0, solarPreference: 'east', privacyLevel: 0.25 },
+      { name: 'Primary Bedroom Suite', type: 'bedroom', width: 4.6, length: 4.2, height: 2.8, solarPreference: 'east', privacyLevel: 0.95 },
+      { name: 'Primary Terrazzo Bath', type: 'bathroom', width: 2.6, length: 3.0, height: 2.6, solarPreference: 'core', privacyLevel: 0.85 },
+      { name: 'Guest Bedroom / Study', type: 'bedroom', width: 3.8, length: 3.8, height: 2.8, solarPreference: 'west', privacyLevel: 0.78 }
     ];
   }
 
-  // 1. Run Symbolic Constraint Solver to achieve 0.00% overlap & topological adjacency
-  const solved = solver.solve(requestedRooms);
+  // 1. Run Simulated Annealing Constraint Solver
+  const solved = solver.solve(requestedRooms, { bubbleGraph });
 
   const createdRooms = [];
   const roomMap = new Map(); // solverId -> createdRoom
@@ -82,11 +89,14 @@ async function generateSpatialLayout({
       height: r.height,
       position: { x: r.x, y: 0, z: r.z }
     });
+    res.solverRoom = r;
     createdRooms.push(res);
     roomMap.set(r.id, res);
   }
 
-  // 3. Connect Topological Adjacency in Neo4j
+  const doorWidth = accessibilityRequired ? 0.96 : 0.9;
+
+  // 3. Connect Topological Adjacency & Place Interior Doors on EXACT Shared Wall Segments
   const adjacenciesCreated = [];
   for (const adj of solved.adjacencies) {
     const roomA = roomMap.get(adj.roomAId);
@@ -101,49 +111,94 @@ async function generateSpatialLayout({
       adjacenciesCreated.push({
         roomA: roomA.room.name,
         roomB: roomB.room.name,
-        sharedLength: `${adj.sharedLength}m`
+        sharedLength: `${adj.sharedLength}m`,
+        wallPosition: adj.roomAWallPosition,
+        portal: `(${adj.portalX}, ${adj.portalZ})`
       });
 
-      // Automatically create a doorway connecting the adjacent spaces
-      const wallA = roomA.walls.find(w => w.isLoadBearing || true);
-      if (wallA) {
-        try {
-          const door = await db.createOpening({
-            wallId: wallA.id,
-            type: 'door',
-            width: 0.9,
-            height: 2.1,
-            material: 'wood'
-          });
+      // Only place interior connecting doorway if shared wall segment is wide enough (>= 1.1m)
+      // and avoid Bathroom <-> Kitchen direct doorway
+      const pairTypes = [roomA.room.type, roomB.room.type].sort().join(':');
+      if (adj.sharedLength >= 1.1 && pairTypes !== 'bathroom:kitchen') {
+        const targetWall = roomA.walls.find(w => w.position === adj.roomAWallPosition) || roomA.walls[0];
+        if (targetWall) {
+          try {
+            const door = await db.createOpening({
+              wallId: targetWall.id,
+              type: 'door',
+              width: doorWidth,
+              height: 2.1,
+              offsetRatio: adj.roomAOffsetRatio || 0.5,
+              material: 'wood'
+            });
 
-          // Create circulation graph edge
-          await db.createConnection({
-            roomAId: roomA.room.id,
-            roomBId: roomB.room.id,
-            viaDoor: door.id,
-            distance: Number((Math.hypot(roomA.room.x - roomB.room.x, roomA.room.z - roomB.room.z)).toFixed(2))
-          });
-        } catch (err) {
-          // Continue if doorway placement hits constraint
+            await db.createConnection({
+              roomAId: roomA.room.id,
+              roomBId: roomB.room.id,
+              viaDoor: door.id,
+              distance: Number((Math.hypot(roomA.room.x - roomB.room.x, roomA.room.z - roomB.room.z)).toFixed(2))
+            });
+          } catch (_) {}
         }
       }
     }
   }
 
-  // 4. Add Exterior Main Entrance Door on the primary Living Room
-  const livingRes = createdRooms.find(r => r.room.type === 'living') || createdRooms[0];
-  if (livingRes) {
-    const frontWall = livingRes.walls.find(w => w.position === 'front');
-    if (frontWall) {
-      try {
-        await db.createOpening({
-          wallId: frontWall.id,
-          type: 'door',
-          width: 1.0,
-          height: 2.2,
-          material: 'wood'
-        });
-      } catch (err) {}
+  // 4. Place Exterior Daylight Windows & Main Entrance Door on True Unobstructed Exterior Walls
+  let windowsPlaced = 0;
+  for (const created of createdRooms) {
+    const exposures = created.solverRoom?.exteriorExposures || [];
+    if (exposures.length === 0) continue;
+
+    // Main Living Room gets exterior entrance door on first exposed wall + window on second if available
+    if (created.room.type === 'living') {
+      const entryExp = exposures.find(e => e.position === 'front') || exposures[0];
+      const entryWall = created.walls.find(w => w.position === entryExp.position);
+      if (entryWall) {
+        try {
+          await db.createOpening({
+            wallId: entryWall.id,
+            type: 'door',
+            width: 1.05,
+            height: 2.2,
+            offsetRatio: 0.35,
+            material: 'wood'
+          });
+        } catch (_) {}
+      }
+
+      const winExp = exposures.find(e => e.position !== entryExp.position) || entryExp;
+      const winWall = created.walls.find(w => w.position === winExp.position);
+      if (winWall) {
+        try {
+          await db.createOpening({
+            wallId: winWall.id,
+            type: 'window',
+            width: 1.8,
+            height: 1.5,
+            offsetRatio: winExp === entryExp ? 0.72 : 0.5,
+            material: 'glass'
+          });
+          windowsPlaced++;
+        } catch (_) {}
+      }
+    } else if (created.room.type !== 'bathroom') {
+      // Every habitable room (bedroom, kitchen, office) gets a daylight window on its best exterior wall
+      const bestExp = exposures[0];
+      const extWall = created.walls.find(w => w.position === bestExp.position);
+      if (extWall) {
+        try {
+          await db.createOpening({
+            wallId: extWall.id,
+            type: 'window',
+            width: 1.5,
+            height: 1.4,
+            offsetRatio: 0.5,
+            material: 'glass'
+          });
+          windowsPlaced++;
+        } catch (_) {}
+      }
     }
   }
 
@@ -156,7 +211,8 @@ async function generateSpatialLayout({
     solverMetrics: {
       ...solved.metrics,
       guaranteedOverlap: '0.00%',
-      topologicalAdjacencies: adjacenciesCreated.length
+      topologicalAdjacencies: adjacenciesCreated.length,
+      daylightWindowsPlaced: windowsPlaced
     },
     totalRooms: createdRooms.length,
     totalAreaSqM: `${totalCalculatedArea} m² (~${(totalCalculatedArea * 10.764).toFixed(0)} sq ft)`,
@@ -166,14 +222,154 @@ async function generateSpatialLayout({
       type: r.room.type,
       dimensions: `${r.room.width}m x ${r.room.length}m x ${r.room.height}m`,
       area: `${r.room.area} m²`,
-      position: `(${r.room.x}, ${r.room.z})`
+      position: `(${r.room.x}, ${r.room.z})`,
+      solarPreference: r.solverRoom?.solarPreference,
+      exteriorExposures: (r.solverRoom?.exteriorExposures || []).map(e => `${e.position} (${e.azimuth})`)
     })),
     adjacencies: adjacenciesCreated
   };
 }
 
 /**
- * Validates building codes (IBC / ADA accessibility / egress) against current graph
+ * Furnishes existing rooms using Continuous Energy-Based Pose Optimization + 2D A* Walkability Audit
+ */
+async function furnishInteriorSpaces({ style = 'japandi', customDirectives = '' } = {}) {
+  let state = await db.getProjectState();
+  if (!state.rooms || state.rooms.length === 0) {
+    await generateSpatialLayout({ program: '2-bedroom-apartment', style });
+    state = await db.getProjectState();
+  }
+
+  // Clear previous furniture in both Neo4j and In-Memory
+  await db.clearFurniture();
+
+  const placedFurniture = [];
+  const energyTelemetry = [];
+
+  for (const room of state.rooms) {
+    // Find doors and windows belonging to or bordering this room
+    const roomOpenings = (state.openings || []).filter(o => {
+      const inX = o.x >= (room.x - room.width / 2 - 0.35) && o.x <= (room.x + room.width / 2 + 0.35);
+      const inZ = o.z >= (room.z - room.length / 2 - 0.35) && o.z <= (room.z + room.length / 2 + 0.35);
+      return inX && inZ;
+    });
+
+    // 1. Build Declarative Scene Graph
+    const sceneSpecs = interiorEnergySolver.buildDeclarativeSceneGraph(room, style, customDirectives);
+
+    // 2. Run Simulated Annealing Continuous Pose Energy Minimizer
+    const optimized = interiorEnergySolver.optimizeRoomFurniture(room, sceneSpecs, roomOpenings, style);
+    energyTelemetry.push(optimized.telemetry);
+
+    // 3. Persist optimized poses to Graph Store
+    for (const item of optimized.items) {
+      const created = await db.createFurniture({
+        roomId: room.id,
+        name: item.name,
+        type: item.type,
+        width: item.width,
+        length: item.length,
+        height: item.height,
+        x: item.x,
+        y: item.y,
+        z: item.z,
+        rotationY: item.rotationY,
+        material: item.material,
+        style
+      });
+      placedFurniture.push(created);
+    }
+  }
+
+  // 4. Run 2D NavMesh A* Pathfinding verification on the furnished scene
+  const updatedState = await db.getProjectState();
+  const aStarAudit = navMeshAStar.computeBuildingCirculationSplines(updatedState);
+
+  const avgInitialEnergy = energyTelemetry.length > 0
+    ? Number((energyTelemetry.reduce((a, t) => a + t.initialEnergy, 0) / energyTelemetry.length).toFixed(2))
+    : 0;
+  const avgFinalEnergy = energyTelemetry.length > 0
+    ? Number((energyTelemetry.reduce((a, t) => a + t.finalEnergy, 0) / energyTelemetry.length).toFixed(2))
+    : 0;
+
+  return {
+    success: true,
+    style,
+    furnitureCount: placedFurniture.length,
+    items: placedFurniture.map(f => ({
+      id: f.id,
+      name: f.name,
+      type: f.type,
+      material: f.material,
+      pose: `(${f.x}, ${f.z}, θ=${f.rotationY}rad)`
+    })),
+    energyOptimization: {
+      algorithm: 'Continuous OBB + Door-Swing Energy Minimization',
+      meanInitialEnergy: avgInitialEnergy,
+      meanFinalEnergy: avgFinalEnergy,
+      roomTelemetry: energyTelemetry
+    },
+    aStarCirculation: {
+      meanWalkabilityRatio: aStarAudit.meanWalkabilityRatio,
+      totalBlockedDoors: aStarAudit.totalBlockedDoors,
+      splineCount: aStarAudit.globalSplines.length
+    },
+    message: `Optimized ${placedFurniture.length} bespoke pieces in '${style}' aesthetic (Final Energy E(S)=${avgFinalEnergy}, A* Walkability=${(aStarAudit.meanWalkabilityRatio * 100).toFixed(1)}%).`
+  };
+}
+
+/**
+ * Surgical Graph Diff Mutation: Modify a specific room's dimensions or add a new room without wiping the project
+ */
+async function mutateRoomGraphDiff({
+  targetRoomTypeOrName = 'bedroom',
+  scaleFactor = 1.2,
+  newStyle = null
+}) {
+  const state = await db.getProjectState();
+  if (!state.rooms || state.rooms.length === 0) {
+    return { success: false, error: 'No rooms in scene to mutate.' };
+  }
+
+  const q = String(targetRoomTypeOrName).toLowerCase();
+  const targetRoom = state.rooms.find(r =>
+    (r.name && r.name.toLowerCase().includes(q)) ||
+    (r.type && r.type.toLowerCase().includes(q))
+  ) || state.rooms[0];
+
+  const oldWidth = targetRoom.width;
+  const oldLength = targetRoom.length;
+  const newWidth = Number(Math.max(2.4, Math.min(11.0, oldWidth * scaleFactor)).toFixed(2));
+  const newLength = Number(Math.max(2.4, Math.min(11.0, oldLength * scaleFactor)).toFixed(2));
+
+  // Shift center outward away from origin so it doesn't overlap inner neighbors
+  const signX = targetRoom.x >= 0 ? 1 : -1;
+  const signZ = targetRoom.z >= 0 ? 1 : -1;
+  const newX = Number((targetRoom.x + signX * ((newWidth - oldWidth) / 2)).toFixed(2));
+  const newZ = Number((targetRoom.z + signZ * ((newLength - oldLength) / 2)).toFixed(2));
+
+  const updated = await db.updateRoomTransform(targetRoom.id, {
+    width: newWidth,
+    length: newLength,
+    x: newX,
+    z: newZ
+  });
+
+  if (newStyle) {
+    await furnishInteriorSpaces({ style: newStyle });
+  }
+
+  return {
+    success: true,
+    mutatedRoom: updated.name,
+    previousDimensions: `${oldWidth}m x ${oldLength}m (${(oldWidth * oldLength).toFixed(1)} m²)`,
+    newDimensions: `${newWidth}m x ${newLength}m (${(newWidth * newLength).toFixed(1)} m²)`,
+    deltaPosition: `(${newX}, ${newZ})`
+  };
+}
+
+/**
+ * Validates building codes (IBC / ADA accessibility / Egress / Daylight / A* Walkability) against current graph
  */
 async function validateBuildingCodes() {
   const state = await db.getProjectState();
@@ -183,6 +379,11 @@ async function validateBuildingCodes() {
   if (!state.rooms || state.rooms.length === 0) {
     return {
       status: 'EMPTY_SCENE',
+      compliant: true,
+      totalChecks: 0,
+      violationCount: 0,
+      violations: [],
+      passedChecks: [],
       message: 'No architectural elements found in the scene to evaluate.'
     };
   }
@@ -245,7 +446,6 @@ async function validateBuildingCodes() {
     });
 
     state.rooms.filter(r => r.type === 'bedroom').forEach(bed => {
-      // BFS to find path to living room
       const queue = [[bed.id]];
       const visited = new Set([bed.id]);
       let foundPath = null;
@@ -273,16 +473,35 @@ async function validateBuildingCodes() {
     });
   }
 
+  // 5. Check 2D NavMesh A* Walkability & Door Swing Clearance
+  const aStarAudit = navMeshAStar.computeBuildingCirculationSplines(state);
+  if (aStarAudit.totalBlockedDoors > 0) {
+    violations.push({
+      code: 'ADA 404.2.4',
+      severity: 'WARNING',
+      entityId: 'furniture_clearance',
+      entityName: 'Door Swing Maneuvering Clearance',
+      description: `${aStarAudit.totalBlockedDoors} doorway(s) have furniture encroaching within the 0.85m swing clearance zone.`
+    });
+  } else {
+    compliantChecks.push(`A* NavMesh Ergonomics: ${(aStarAudit.meanWalkabilityRatio * 100).toFixed(1)}% unobstructed floor walkability with 0 blocked doorways.`);
+  }
+
+  const totalChecks = compliantChecks.length + egressChecks.length + violations.length;
   const isCompliant = violations.filter(v => v.severity === 'CRITICAL').length === 0;
 
   return {
+    status: isCompliant ? 'COMPLIANT' : 'VIOLATIONS_FOUND',
     compliant: isCompliant,
-    score: Number((((compliantChecks.length + egressChecks.length) / Math.max(1, compliantChecks.length + egressChecks.length + violations.length)) * 100).toFixed(0)),
+    score: Number((((compliantChecks.length + egressChecks.length) / Math.max(1, totalChecks)) * 100).toFixed(0)),
+    totalChecks,
+    violationCount: violations.length,
     totalViolations: violations.length,
     criticalCount: violations.filter(v => v.severity === 'CRITICAL').length,
     warningCount: violations.filter(v => v.severity === 'WARNING').length,
     violations,
-    passedChecks: [...compliantChecks, ...egressChecks]
+    passedChecks: [...compliantChecks, ...egressChecks],
+    aStarWalkability: aStarAudit.meanWalkabilityRatio
   };
 }
 
@@ -294,6 +513,7 @@ async function addOpeningToWall({
   type = 'door',
   width = 0.9,
   height = 2.1,
+  offsetRatio = 0.5,
   material = 'wood'
 }) {
   const state = await db.getProjectState();
@@ -319,6 +539,7 @@ async function addOpeningToWall({
     type,
     width,
     height,
+    offsetRatio,
     material
   });
 
@@ -331,12 +552,13 @@ async function addOpeningToWall({
 }
 
 /**
- * Returns complete topological and structural summary
+ * Returns complete topological, structural, and A* circulation summary
  */
 async function inspectProjectTopology() {
   const state = await db.getProjectState();
   const totalArea = (state.rooms || []).reduce((acc, r) => acc + (r.area || (r.width * r.length)), 0);
-  
+  const aStarAudit = navMeshAStar.computeBuildingCirculationSplines(state);
+
   return {
     connectedToDatabase: state.isConnected,
     dataSource: state.source,
@@ -346,152 +568,12 @@ async function inspectProjectTopology() {
     furnitureCount: state.furniture ? state.furniture.length : 0,
     adjacencyCount: state.adjacencies ? state.adjacencies.length : 0,
     circulationPathCount: state.connections ? state.connections.length : 0,
+    walkabilityRatio: `${(aStarAudit.meanWalkabilityRatio * 100).toFixed(1)}%`,
     totalAreaSqMeters: totalArea.toFixed(1),
     totalAreaSqFeet: (totalArea * 10.764).toFixed(0),
     rooms: (state.rooms || []).map(r => ({ name: r.name, dimensions: `${r.width}x${r.length}m`, type: r.type })),
-    adjacencies: state.adjacencies || []
-  };
-}
-
-/**
- * Furnishes existing rooms with high-end Architectural Digest interior furniture
- */
-async function furnishInteriorSpaces({ style = 'japandi' }) {
-  let state = await db.getProjectState();
-  if (!state.rooms || state.rooms.length === 0) {
-    // Autonomously synthesize a residence first if scene is empty
-    await generateSpatialLayout({ program: '2-bedroom-apartment', style });
-    state = await db.getProjectState();
-  }
-
-  // Clear previous furniture
-  db.inMemoryStore.furniture.clear();
-
-  const placedFurniture = [];
-
-  for (const room of state.rooms) {
-    const rx = room.x || 0;
-    const rz = room.z || 0;
-    const rtype = room.type || 'living';
-
-    if (rtype === 'living') {
-      const sofa = await db.createFurniture({
-        roomId: room.id,
-        name: 'Curved Bouclé Sofa',
-        type: 'sofa',
-        width: 2.6,
-        length: 1.1,
-        height: 0.75,
-        x: rx,
-        y: 0.38,
-        z: rz - 0.5,
-        rotationY: 0,
-        material: style === 'mid-century' ? 'cognac-leather' : 'boucle',
-        style
-      });
-
-      const table = await db.createFurniture({
-        roomId: room.id,
-        name: 'Low Sculptural Coffee Table',
-        type: 'table',
-        width: 1.4,
-        length: 0.8,
-        height: 0.35,
-        x: rx,
-        y: 0.18,
-        z: rz + 0.8,
-        rotationY: 0,
-        material: style === 'japandi' ? 'light-oak' : (style === 'mid-century' ? 'walnut' : 'travertine'),
-        style
-      });
-
-      const plant = await db.createFurniture({
-        roomId: room.id,
-        name: 'Indoor Olive Tree Planter',
-        type: 'plant',
-        width: 0.6,
-        length: 0.6,
-        height: 1.8,
-        x: rx - (room.width / 2) + 0.8,
-        y: 0.9,
-        z: rz - (room.length / 2) + 0.8,
-        rotationY: 0,
-        material: 'ceramic-greenery',
-        style
-      });
-      placedFurniture.push(sofa, table, plant);
-    } else if (rtype === 'bedroom') {
-      const bed = await db.createFurniture({
-        roomId: room.id,
-        name: 'Low Minimalist Platform Bed',
-        type: 'bed',
-        width: 2.1,
-        length: 2.2,
-        height: 0.65,
-        x: rx,
-        y: 0.33,
-        z: rz - 0.4,
-        rotationY: 0,
-        material: style === 'japandi' ? 'linen-oak' : 'boucle-walnut',
-        style
-      });
-
-      const nightstandL = await db.createFurniture({
-        roomId: room.id,
-        name: 'Floating Bedside Nightstand',
-        type: 'table',
-        width: 0.5,
-        length: 0.45,
-        height: 0.45,
-        x: rx - 1.4,
-        y: 0.23,
-        z: rz - 0.4,
-        rotationY: 0,
-        material: 'oak',
-        style
-      });
-      placedFurniture.push(bed, nightstandL);
-    } else if (rtype === 'kitchen') {
-      const island = await db.createFurniture({
-        roomId: room.id,
-        name: 'Fluted Marble Kitchen Island',
-        type: 'island',
-        width: 2.4,
-        length: 1.0,
-        height: 0.9,
-        x: rx,
-        y: 0.45,
-        z: rz,
-        rotationY: 0,
-        material: 'calacatta-marble',
-        style
-      });
-      placedFurniture.push(island);
-    } else if (rtype === 'bathroom') {
-      const vanity = await db.createFurniture({
-        roomId: room.id,
-        name: 'Floating Stone Vanity',
-        type: 'island',
-        width: 1.2,
-        length: 0.6,
-        height: 0.8,
-        x: rx,
-        y: 0.4,
-        z: rz - 0.5,
-        rotationY: 0,
-        material: 'terrazzo',
-        style
-      });
-      placedFurniture.push(vanity);
-    }
-  }
-
-  return {
-    success: true,
-    style,
-    furnitureCount: placedFurniture.length,
-    items: placedFurniture.map(f => ({ name: f.name, type: f.type, material: f.material })),
-    message: `Furnished spaces with ${placedFurniture.length} bespoke Architectural Digest pieces (${style} aesthetic).`
+    adjacencies: state.adjacencies || [],
+    aStarSplines: aStarAudit.globalSplines
   };
 }
 
@@ -501,5 +583,6 @@ module.exports = {
   addOpeningToWall,
   inspectProjectTopology,
   furnishInteriorSpaces,
+  mutateRoomGraphDiff,
   clearProject: db.clearAll
 };

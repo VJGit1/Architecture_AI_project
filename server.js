@@ -1,22 +1,26 @@
 // server.js
-// Enterprise Architectural BIM & Agentic AI Server
+// Enterprise Architectural BIM & Neuro-Symbolic Multi-Agent AI Server
 
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./src/graph/db');
 const agent = require('./src/agent/agentCore');
+const tools = require('./src/agent/tools');
 const { ArchitecturalBenchmarkSuite } = require('./src/agent/evaluator');
+const { navMeshAStar } = require('./src/ai/pathfindingAStar');
+const { llmProvider } = require('./src/ai/llmProvider');
+const { precedentRag } = require('./src/ai/precedentRag');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const benchmarkSuite = new ArchitecturalBenchmarkSuite();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '15mb' }));
 app.use(express.static('public'));
 
-// --- HEALTH & STATUS ---
+// --- HEALTH & AI ENGINE STATUS ---
 app.get('/api/status', async (req, res) => {
   const isConnected = await db.checkConnection();
   res.json({
@@ -25,7 +29,13 @@ app.get('/api/status', async (req, res) => {
       ...db.getStatus(),
       isConnected
     },
-    version: '2.0.0-agentic'
+    aiEngine: {
+      provider: llmProvider.getActiveProviderName(),
+      cloudLLMConfigured: llmProvider.isCloudLLMConfigured(),
+      metrics: llmProvider.callMetrics,
+      userMemory: precedentRag.userMemory
+    },
+    version: '3.0.0-neuro-symbolic'
   });
 });
 
@@ -40,11 +50,12 @@ app.get('/api/benchmark', async (req, res) => {
   }
 });
 
-// --- SCENE HYDRATION: GET COMPLETE 3D GRAPH ---
+// --- SCENE HYDRATION: GET COMPLETE 3D GRAPH + A* CIRCULATION SPLINES ---
 app.get('/api/project/state', async (req, res) => {
   try {
     const state = await db.getProjectState();
-    res.json({ success: true, ...state });
+    const aStarCirculation = navMeshAStar.computeBuildingCirculationSplines(state);
+    res.json({ success: true, ...state, aStarCirculation });
   } catch (error) {
     console.error('Error fetching project state:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -53,24 +64,89 @@ app.get('/api/project/state', async (req, res) => {
 
 // --- AGENTIC AI ENDPOINTS ---
 
-// Standard Agent Chat Endpoint
+// Standard Multi-Agent Chat Endpoint
 app.post('/api/agent/chat', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, viewportSnapshotBase64 } = req.body;
     if (!message) {
       return res.status(400).json({ success: false, error: 'Message is required.' });
     }
 
-    const agentResult = await agent.runAgentLoop(message);
+    const agentResult = await agent.runAgentLoop(message, () => {}, { viewportSnapshotBase64 });
     const updatedState = await db.getProjectState();
+    const aStarCirculation = navMeshAStar.computeBuildingCirculationSplines(updatedState);
 
     res.json({
       success: true,
       ...agentResult,
-      updatedState
+      updatedState: {
+        ...updatedState,
+        aStarCirculation
+      }
     });
   } catch (error) {
     console.error('Agent loop execution error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Multimodal Vision-Language Moodboard & Sketch-to-3D Endpoint
+app.post('/api/agent/vision', async (req, res) => {
+  try {
+    const { promptText = '', imageBase64 = null, mode = 'moodboard' } = req.body;
+    const visionExtraction = await agent.analyzeMultimodalDesignInput({ promptText, imageBase64, mode });
+    const extracted = visionExtraction.data;
+
+    // Synthesize 3D layout & energy-optimized furniture from VLM extraction
+    const layoutRes = await tools.generateSpatialLayout({
+      program: extracted.title || 'Vision-Grounded Residence',
+      style: extracted.style || 'japandi',
+      customRooms: extracted.rooms
+    });
+    const furnishRes = await tools.furnishInteriorSpaces({
+      style: extracted.style || 'japandi',
+      customDirectives: promptText
+    });
+    const criticRes = await agent.runVisualAndGeometricCritic({});
+    const updatedState = await db.getProjectState();
+    const aStarCirculation = navMeshAStar.computeBuildingCirculationSplines(updatedState);
+
+    res.json({
+      success: true,
+      visionExtraction: extracted,
+      provider: visionExtraction.provider,
+      layout: layoutRes,
+      furnishing: furnishRes,
+      criticAudit: criticRes.criticAudit,
+      updatedState: {
+        ...updatedState,
+        aStarCirculation
+      }
+    });
+  } catch (error) {
+    console.error('Multimodal vision error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Closed-Loop Visual Critic Snapshot Audit Endpoint
+app.post('/api/agent/critic', async (req, res) => {
+  try {
+    const { viewportSnapshotBase64 } = req.body;
+    const criticRes = await agent.runVisualAndGeometricCritic({ viewportSnapshotBase64 });
+    const updatedState = await db.getProjectState();
+    const aStarCirculation = navMeshAStar.computeBuildingCirculationSplines(updatedState);
+
+    res.json({
+      success: true,
+      ...criticRes,
+      updatedState: {
+        ...updatedState,
+        aStarCirculation
+      }
+    });
+  } catch (error) {
+    console.error('Visual critic error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -96,7 +172,8 @@ app.get('/api/agent/stream', async (req, res) => {
     });
 
     const state = await db.getProjectState();
-    sendEvent('state_update', state);
+    const aStarCirculation = navMeshAStar.computeBuildingCirculationSplines(state);
+    sendEvent('state_update', { ...state, aStarCirculation });
     sendEvent('done', result);
   } catch (err) {
     sendEvent('error', { message: err.message });
@@ -111,14 +188,15 @@ app.post('/api/agent/tool', async (req, res) => {
     const { tool, args } = req.body;
     const result = await agent.executeTool(tool, args || {});
     const updatedState = await db.getProjectState();
-    res.json({ success: true, result, updatedState });
+    const aStarCirculation = navMeshAStar.computeBuildingCirculationSplines(updatedState);
+    res.json({ success: true, result, updatedState: { ...updatedState, aStarCirculation } });
   } catch (error) {
     console.error('Direct tool error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// --- DIRECT MANIPULATION & LEGACY ENDPOINTS (Upgraded with 3D persistence) ---
+// --- DIRECT MANIPULATION & PERSISTENCE ENDPOINTS ---
 
 app.post('/api/addRoom', async (req, res) => {
   try {
@@ -136,7 +214,9 @@ app.put('/api/updateRoom/:id', async (req, res) => {
     const roomId = req.params.id;
     const { width, length, height, x, y, z } = req.body;
     const updated = await db.updateRoomTransform(roomId, { width, length, height, x, y, z });
-    res.status(200).json({ success: true, room: updated });
+    const updatedState = await db.getProjectState();
+    const aStarCirculation = navMeshAStar.computeBuildingCirculationSplines(updatedState);
+    res.status(200).json({ success: true, room: updated, updatedState: { ...updatedState, aStarCirculation } });
   } catch (error) {
     console.error('Error updating room:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -165,6 +245,6 @@ app.post('/api/clear', async (req, res) => {
 
 // Start Server & Probe Neo4j
 app.listen(port, async () => {
-  console.log(`🚀 Architecture AI Platform running at http://localhost:${port}`);
+  console.log(`🚀 Architecture AI Platform (v3.0 Neuro-Symbolic) running at http://localhost:${port}`);
   await db.checkConnection();
 });

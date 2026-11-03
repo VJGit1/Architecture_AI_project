@@ -587,6 +587,14 @@ async function createOpening({
     throw new Error(`Wall with ID ${wallId} not found.`);
   }
 
+  const isVerticalWall = Math.abs((wall.rotationY || 0) - Math.PI / 2) < 0.2;
+  const shiftFromCenter = ((offsetRatio !== undefined ? offsetRatio : 0.5) - 0.5) * Math.max(0, (wall.width || 4) - width - 0.4);
+  const openX = isVerticalWall ? wall.x : Number((wall.x + shiftFromCenter).toFixed(2));
+  const openZ = isVerticalWall ? Number((wall.z + shiftFromCenter).toFixed(2)) : wall.z;
+  const openY = type === 'window'
+    ? Number(((wall.y - (wall.height / 2)) + 0.95 + (height / 2)).toFixed(2))
+    : Number(((wall.y - (wall.height / 2)) + (height / 2)).toFixed(2));
+
   const openingData = {
     id: openingId,
     wallId,
@@ -596,9 +604,9 @@ async function createOpening({
     depth,
     offsetRatio,
     material,
-    x: wall.x,
-    y: (wall.y - (wall.height / 2)) + (height / 2),
-    z: wall.z,
+    x: openX,
+    y: openY,
+    z: openZ,
     rotationY: wall.rotationY || 0
   };
 
@@ -625,10 +633,15 @@ async function createOpening({
   return openingData;
 }
 
-// Update Room Transform and Dimensions
+// Update Room Transform and Dimensions (Coupled propagation to child floor, walls, openings, and furniture)
 async function updateRoomTransform(id, { width, length, height, x, y, z }) {
   const room = inMemoryStore.rooms.get(id);
+  let dx = 0;
+  let dz = 0;
+
   if (room) {
+    const oldX = room.x || 0;
+    const oldZ = room.z || 0;
     if (width !== undefined) room.width = width;
     if (length !== undefined) room.length = length;
     if (height !== undefined) room.height = height;
@@ -636,6 +649,62 @@ async function updateRoomTransform(id, { width, length, height, x, y, z }) {
     if (y !== undefined) room.y = y;
     if (z !== undefined) room.z = z;
     room.area = Number(((room.width || 6) * (room.length || 6)).toFixed(2));
+
+    dx = (room.x || 0) - oldX;
+    dz = (room.z || 0) - oldZ;
+
+    // 1. Update coupled Floor
+    if (room.floor) {
+      room.floor.width = room.width;
+      room.floor.length = room.length;
+      room.floor.x = room.x;
+      room.floor.z = room.z;
+      inMemoryStore.floors.set(room.floor.id, room.floor);
+    }
+
+    // 2. Update coupled 4 Bounding Walls & any Openings hosted on them
+    if (Array.isArray(room.walls)) {
+      room.walls.forEach(w => {
+        if (w.position === 'front') {
+          w.width = room.width;
+          w.height = room.height;
+          w.x = room.x;
+          w.z = room.z + room.length / 2;
+        } else if (w.position === 'back') {
+          w.width = room.width;
+          w.height = room.height;
+          w.x = room.x;
+          w.z = room.z - room.length / 2;
+        } else if (w.position === 'left') {
+          w.width = room.length;
+          w.height = room.height;
+          w.x = room.x - room.width / 2;
+          w.z = room.z;
+        } else if (w.position === 'right') {
+          w.width = room.length;
+          w.height = room.height;
+          w.x = room.x + room.width / 2;
+          w.z = room.z;
+        }
+        inMemoryStore.walls.set(w.id, w);
+
+        // Coupled openings on this wall
+        for (const op of inMemoryStore.openings.values()) {
+          if (op.wallId === w.id) {
+            op.x = Number((op.x + dx).toFixed(2));
+            op.z = Number((op.z + dz).toFixed(2));
+          }
+        }
+      });
+    }
+
+    // 3. Translate Furniture inside this room
+    for (const fu of inMemoryStore.furniture.values()) {
+      if (fu.roomId === id) {
+        fu.x = Number((fu.x + dx).toFixed(2));
+        fu.z = Number((fu.z + dz).toFixed(2));
+      }
+    }
   }
 
   if (isConnected) {
@@ -650,12 +719,29 @@ async function updateRoomTransform(id, { width, length, height, x, y, z }) {
             r.y = COALESCE($y, r.y),
             r.z = COALESCE($z, r.z),
             r.area = toFloat(COALESCE($width, r.width)) * toFloat(COALESCE($length, r.length))
+        WITH r
+        OPTIONAL MATCH (r)-[:HAS_FLOOR]->(f:Floor)
+        SET f.width = r.width, f.length = r.length, f.x = r.x, f.z = r.z
+        WITH r
+        OPTIONAL MATCH (r)-[:CONTAINS_FURNITURE]->(fu:Furniture)
+        SET fu.x = fu.x + $dx, fu.z = fu.z + $dz
         `,
-        { id, width, length, height, x, y, z }
+        { id, width, length, height, x, y, z, dx, dz }
       );
     });
   }
   return room;
+}
+
+// Clear all furniture in project (Both Neo4j and In-Memory)
+async function clearFurniture() {
+  inMemoryStore.furniture.clear();
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run('MATCH (fu:Furniture) DETACH DELETE fu');
+    });
+  }
+  return { success: true };
 }
 
 // Add Furniture to Room
@@ -735,6 +821,7 @@ module.exports = {
   createAdjacency,
   createConnection,
   updateRoomTransform,
+  clearFurniture,
   clearAll,
   inMemoryStore,
   getStatus: () => ({
