@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "eval": "node scripts/eval-shopper.js"
   },
   "keywords": ["architecture", "threejs", "neo4j", "agentic-ai", "bim"],
   "author": "",

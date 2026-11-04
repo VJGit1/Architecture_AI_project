@@ -1,96 +1,68 @@
-# 🏛️ Architecture AI // Autonomous BIM Co-Pilot
+# Room fit
 
-An autonomous, neuro-symbolic Building Information Modeling (BIM) co-pilot that pairs an AI Architect with human designers. It translates natural language design intent into topologically sound, code-compliant, and interactive 3D spatial models.
+A shopper describes a room they already have. An agent fills it with pieces from a fictional catalog, Harbor & Co., that fit the walls, keep the door swing clear, face the TV, and stay under budget. On a later turn the shopper can swap one piece ("Swap the sofa for something under $900"), and the agent changes only that piece. The rest of the room stays as it was.
 
-Built with **Three.js**, **Neo4j**, and **Agentic AI**.
+Built with Node, Express, Three.js, and Neo4j (with an in-memory fallback).
 
----
+The catalog is made up. Its products, names, prices, and copy do not come from any real retailer.
 
-## ✨ Features
+## Run it
 
-- **🧠 Neuro-Symbolic Agentic Core**:
-  - Translates natural language requirements into architectural programs (studios, multi-bedroom residences, offices).
-  - Employs a ReAct reasoning loop ($\text{Perceive} \rightarrow \text{Plan} \rightarrow \text{Tool Action} \rightarrow \text{Verify} \rightarrow \text{Synthesize}$).
-  - Live streaming thought trace bubbles in the UI.
-
-- **🛋️ Interior Design & Bespoke Furnishing Engine**:
-  - Automatically places curated Architectural Digest furniture (curved bouclé sofas, platform beds, fluted marble kitchen islands, indoor olive trees).
-  - Preserves ergonomic human circulation clearances.
-  - Supports curated design aesthetics: **Japandi**, **Mid-Century Modern**, and **Warm Minimalist**.
-
-- **🌅 Architectural Digest Lighting & Sun Simulation**:
-  - Realistic sun angle simulation with soft contact shadows: **Golden Hour (3000K warm tone)**, **High Noon (daylight)**, and **Cozy Dusk (2700K recessed interior spotlights)**.
-  - ACES Filmic Tone Mapping and PBR procedural materials (French herringbone oak parquet, Roman clay limewash plaster, Calacatta marble).
-
-- **🚶 First-Person "Architectural Tour" Walk Mode**:
-  - Drops the camera to 1.7m (5'7" human eye level).
-  - Walk smoothly through your generated apartment using <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> keys and look around in 360°!
-
-- **🏛️ Building Code & Accessibility Audit**:
-  - Automated compliance checks against **International Building Code (IBC)** and **ADA Standards**:
-    - **IBC 1208.3**: Habitable room minimum area ($\ge 70\text{ sq ft} / 6.5\text{ m}^2$).
-    - **IBC 1208.2**: Minimum ceiling clearances ($\ge 7.0\text{ ft} / 2.13\text{m}$).
-    - **ADA 404.2.3 / IBC 1005.1**: Door egress clearances ($\ge 32\text{ in} / 0.81\text{m}$).
-
-- **🌐 Semantic Knowledge Graph (Neo4j)**:
-  - Rooms, walls, floors, and openings modeled as a topological graph.
-  - Safe per-query session lifecycle.
-  - Built-in resilient in-memory fallback for offline/development environments.
-
-- **🎮 High-Performance 3D Viewport**:
-  - Real-time Three.js renderer with shadows, lighting, and metric grid.
-  - 3D floating room badges showing live square footage ($m^2$).
-  - Full transform manipulation (<kbd>T</kbd> Move, <kbd>R</kbd> Rotate, <kbd>S</kbd> Scale) synced bi-directionally with the graph database.
-  - Scene hydration on reload: designs are saved and automatically restored.
-
----
-
-## 🚀 Quick Start
-
-### 1. Prerequisites
-- Node.js (v18+)
-- Neo4j Desktop or Neo4j Aura (optional, in-memory mode active by default if offline)
-
-### 2. Installation
 ```bash
-git clone https://github.com/VJGit1/Architecture_AI_project.git
-cd Architecture_AI_project
 npm install
+npm start          # http://localhost:3000
+npm run eval       # scores the shopper briefs and prints real pass/fail counts
 ```
 
-### 3. Configuration
-Copy the environment template:
-```bash
-cp .env.example .env
+Neo4j is optional. When `NEO4J_URI` is unreachable, or `ROOM_FIT_OFFLINE=1` is set, the catalog, sessions, and rooms live in memory. The catalog seeds on startup, and clearing a room never deletes catalog nodes.
+
+An LLM is optional too. With `OPENAI_API_KEY` or `GEMINI_API_KEY` set, a model may rephrase the clarifying question and the "Why this set" text. Every size, price, and SKU comes from the catalog, and model text that contains digits is discarded. Without a key, both shopper turns run on the local compiler.
+
+## The studio
+
+The left 70% of the page is the room at real size: cut-away walls, door swing arcs, and catalog blocks built from each SKU's width, depth, and height. The right rail holds:
+
+- room width, length, and budget
+- cart lines (name, dimensions, price, and one reason)
+- a total such as "$2,966 of $3,000"
+- "Why this set"
+- any refused piece, which also appears in 3D as a callout at the door or wall that refused it
+- the message field and the **Fit the room** button
+- a closed-by-default "How this was chosen" trace (tool, argument, observation)
+
+## The tool loop
+
+Each turn loads the shopper session, which holds the brief, candidate SKUs, cart, placement, last critique, and repair count. A pure policy (`src/shopper/policy.js`) looks at that state and picks one next tool:
+
+| Tool | Does |
+| --- | --- |
+| `ask_shopper` | asks one question when width, length, or budget is missing, and places nothing |
+| `search_catalog` | pulls SKUs by role, price cap, required features (performance fabric for pets), and wall fit |
+| `propose_bundle` | searches for the highest-scoring set within budget, wall length, and depth clearances |
+| `place_in_room` | runs the energy solver with real SKU sizes, re-placing only the changed slots |
+| `critique_fit` | checks budget, required pieces, door swing and walls, and sofa-to-TV facing |
+| `swap_sku` | replaces one slot's SKU under the given constraint |
+| `explain` | writes "Why this set" or the open issue |
+
+How each kind of fit failure is repaired:
+
+- A door collision, or a piece that doesn't fit, swaps the blocking SKU for a smaller one.
+- Going over budget swaps the most expensive optional piece for a cheaper one.
+- A sofa that doesn't face the TV is placed again with a facing constraint.
+- After 3 repairs the agent stops and leaves an open issue naming the room, the rule, and the SKU.
+
+## Layout
+
 ```
-Edit `.env` if your local Neo4j has custom credentials (default is `neo4j` / `qwerty123`).
-
-### 4. Run the Studio
-```bash
-npm start
-```
-Open your browser at: **`http://localhost:3000`**
-
----
-
-## 🛠️ Architecture Overview
-
-```
-Architecture_AI_project/
-├── src/
-│   ├── graph/
-│   │   └── db.js            # Resilient Neo4j & In-Memory Spatial Repository
-│   └── agent/
-│       ├── tools.js         # Spatial layout generator, IBC code auditor, openings
-│       └── agentCore.js     # Autonomous ReAct agent reasoning engine
-├── public/
-│   └── index.html           # Modern Three.js 3D Studio & AI Co-Pilot UI
-├── server.js                # Express & SSE streaming server
-├── package.json
-└── README.md
+src/catalog/       Harbor & Co. seed data and the catalog store (Neo4j or memory)
+src/shopper/       brief parser, session state, policy, bundle planner, room geometry, tools
+src/ai/            interior energy solver, LLM provider, A* pathfinding, precedent memory
+src/agent/         evaluator (shopper brief suite and the legacy layout suite)
+src/graph/db.js    Neo4j repository with the in-memory fallback
+scripts/           eval-shopper.js
+public/index.html  the studio
 ```
 
----
+## License
 
-## 📜 License
 MIT

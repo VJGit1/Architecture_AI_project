@@ -1,5 +1,6 @@
 // src/graph/db.js
 // Enterprise-grade, resilient Neo4j Graph Connection & Spatial Service
+// Supports connected architectural topology, room adjacencies, and circulation pathways
 
 require('dotenv').config();
 const neo4j = require('neo4j-driver');
@@ -9,20 +10,32 @@ const uri = process.env.NEO4J_URI || 'neo4j://localhost:7687';
 const user = process.env.NEO4J_USER || 'neo4j';
 const password = process.env.NEO4J_PASSWORD || 'qwerty123';
 
+// ROOM_FIT_OFFLINE=1 keeps everything in memory (used by the eval script so it never touches a real graph).
+const forceOffline = process.env.ROOM_FIT_OFFLINE === '1';
+
 let driver = null;
 let isConnected = false;
 let connectionAttempted = false;
+let layoutResetCount = 0;
 
-// Resilient In-Memory Graph Store (used when Neo4j is offline or during local testing)
+// Labels that survive clearAll: the catalog and saved shopper sessions are not part of a room.
+const PRESERVED_LABELS = ['Product', 'Collection', 'Feature', 'ShopperSession'];
+
+// Resilient In-Memory Graph Store (used when Neo4j is offline or during testing)
 const inMemoryStore = {
   rooms: new Map(),
   walls: new Map(),
   floors: new Map(),
   openings: new Map(),
-  furniture: new Map()
+  furniture: new Map(),
+  products: new Map(),
+  sessions: new Map(),
+  adjacencies: [],
+  connections: []
 };
 
 function initDriver() {
+  if (forceOffline) return null;
   if (driver) return driver;
   try {
     driver = neo4j.driver(
@@ -64,7 +77,7 @@ async function checkConnection() {
   }
 }
 
-// Safe execution helper: Always closes session and falls back to memory store if Neo4j is offline
+// Safe execution helper: Always closes session and handles errors
 async function withSession(workFn) {
   if (!connectionAttempted) {
     await checkConnection();
@@ -84,9 +97,178 @@ async function withSession(workFn) {
   return null;
 }
 
+// Helper: Compile interactive 2D/3D Graph Network payload
+// mode: 'semantic' (default: clean Room + Circulation + Opening + Furniture topology) vs 'full' / 'bim' (all walls & floors)
+function buildGraphTopology({ rooms = [], floors = [], walls = [], openings = [], furniture = [], adjacencies = [], connections = [] }, mode = 'semantic') {
+  const nodes = [];
+  const edges = [];
+  const seenNodes = new Set();
+  const isFullBim = (mode === 'full' || mode === 'bim');
+
+  // 1. Add Rooms (Hub nodes)
+  rooms.forEach(r => {
+    if (!seenNodes.has(r.id)) {
+      seenNodes.add(r.id);
+      nodes.push({
+        id: r.id,
+        label: r.name || 'Room',
+        sublabel: `${r.area || (r.width * r.length).toFixed(1)} m²`,
+        group: 'room',
+        type: r.type || 'living',
+        size: 26,
+        color: '#e8b4b8', // Rose Gold
+        strokeColor: '#f7d6d0',
+        x: r.x,
+        y: r.y || 0,
+        z: r.z,
+        data: { ...r }
+      });
+    }
+  });
+
+  // 2. Add Floors (Only in Full BIM mode to prevent visual clutter)
+  if (isFullBim) {
+    floors.forEach(f => {
+      if (!seenNodes.has(f.id)) {
+        seenNodes.add(f.id);
+        nodes.push({
+          id: f.id,
+          label: f.name || 'Floor',
+          group: 'floor',
+          size: 14,
+          color: '#c86d51', // Terracotta
+          strokeColor: '#e07a5f',
+          x: f.x,
+          z: f.z,
+          data: { ...f }
+        });
+      }
+    });
+  }
+
+  // 3. Add Walls (Only in Full BIM mode to prevent visual clutter)
+  if (isFullBim) {
+    walls.forEach(w => {
+      if (!seenNodes.has(w.id)) {
+        seenNodes.add(w.id);
+        nodes.push({
+          id: w.id,
+          label: w.name || 'Wall',
+          group: 'wall',
+          size: 12,
+          color: '#8e7a96', // Slate Amethyst
+          strokeColor: '#b4a0bc',
+          x: w.x,
+          z: w.z,
+          data: { ...w }
+        });
+      }
+    });
+  }
+
+  // 4. Add Openings (Doors/Windows)
+  openings.forEach(o => {
+    if (!seenNodes.has(o.id)) {
+      seenNodes.add(o.id);
+      nodes.push({
+        id: o.id,
+        label: `${o.type === 'door' ? '🚪' : '🪟'} ${o.type || 'Opening'}`,
+        group: 'opening',
+        size: 14,
+        color: '#f7d6d0', // Blush
+        strokeColor: '#eed9c4',
+        x: o.x,
+        z: o.z,
+        data: { ...o }
+      });
+    }
+  });
+
+  // 5. Add Furniture
+  furniture.forEach(fu => {
+    if (!seenNodes.has(fu.id)) {
+      seenNodes.add(fu.id);
+      nodes.push({
+        id: fu.id,
+        label: fu.name || 'Furniture',
+        sublabel: fu.style || 'japandi',
+        group: 'furniture',
+        size: 16,
+        color: '#d4a373', // Champagne Sand
+        strokeColor: '#eed9c4',
+        x: fu.x,
+        z: fu.z,
+        data: { ...fu }
+      });
+    }
+  });
+
+  // 6. Structural Edges (Room -> Floor, Room -> Wall, Wall -> Opening)
+  if (isFullBim) {
+    rooms.forEach(r => {
+      if (r.floor && r.floor.id) {
+        edges.push({ id: `e_${r.id}_${r.floor.id}`, source: r.id, target: r.floor.id, type: 'HAS_FLOOR', color: 'rgba(200, 109, 81, 0.45)' });
+      }
+      if (r.walls && Array.isArray(r.walls)) {
+        r.walls.forEach(w => {
+          edges.push({ id: `e_${r.id}_${w.id}`, source: r.id, target: w.id, type: 'HAS_WALL', color: 'rgba(142, 122, 150, 0.45)' });
+        });
+      }
+    });
+
+    openings.forEach(o => {
+      if (o.wallId) {
+        edges.push({ id: `e_${o.wallId}_${o.id}`, source: o.wallId, target: o.id, type: 'HAS_OPENING', color: 'rgba(247, 214, 208, 0.6)' });
+      }
+    });
+  }
+
+  // 7. Furniture containment edges (Room -> Furniture)
+  furniture.forEach(fu => {
+    if (fu.roomId) {
+      edges.push({ id: `e_${fu.roomId}_${fu.id}`, source: fu.roomId, target: fu.id, type: 'CONTAINS_FURNITURE', color: 'rgba(212, 163, 115, 0.55)' });
+    }
+  });
+
+  // 8. Topological Adjacency Edges (Room <--> Room)
+  const seenAdj = new Set();
+  adjacencies.forEach(adj => {
+    const key = [adj.source || adj.roomAId, adj.target || adj.roomBId].sort().join('__');
+    if (!seenAdj.has(key)) {
+      seenAdj.add(key);
+      edges.push({
+        id: `adj_${key}`,
+        source: adj.source || adj.roomAId,
+        target: adj.target || adj.roomBId,
+        type: 'ADJACENT_TO',
+        label: `${adj.sharedLength || 0}m`,
+        color: '#eed9c4', // Champagne glow
+        width: 2.5,
+        dashed: true
+      });
+    }
+  });
+
+  // 9. Circulation Edges (Doorway paths)
+  connections.forEach((conn, idx) => {
+    edges.push({
+      id: `conn_${idx}_${conn.source}_${conn.target}`,
+      source: conn.source,
+      target: conn.target,
+      type: 'CONNECTS_TO',
+      label: 'walkway',
+      color: '#52b788', // Emerald mint glow
+      width: 3.0,
+      dashed: false
+    });
+  });
+
+  return { nodes, edges, mode: isFullBim ? 'bim' : 'semantic' };
+}
+
 // --- PROJECT GRAPH REPOSITORY METHODS ---
 
-// Get entire building graph for 3D hydration
+// Get entire building graph for 3D hydration & 2D Knowledge Graph
 async function getProjectState() {
   if (isConnected) {
     return await withSession(async (session) => {
@@ -123,6 +305,42 @@ async function getProjectState() {
       const furnitureRes = await session.run(`MATCH (fu:Furniture) RETURN fu`);
       const furniture = furnitureRes.records.map(r => r.get('fu').properties);
 
+      // Query connected topological relationships
+      let adjacencies = [];
+      try {
+        const adjRes = await session.run(`
+          MATCH (r1:Room)-[a:ADJACENT_TO]->(r2:Room)
+          RETURN r1.id AS source, r2.id AS target, a.sharedLength AS sharedLength, a.axis AS axis
+        `);
+        adjacencies = adjRes.records.map(r => ({
+          source: r.get('source'),
+          target: r.get('target'),
+          sharedLength: r.get('sharedLength'),
+          axis: r.get('axis')
+        }));
+      } catch (err) {
+        adjacencies = inMemoryStore.adjacencies;
+      }
+
+      let connections = [];
+      try {
+        const connRes = await session.run(`
+          MATCH (r1:Room)-[c:CONNECTS_TO]->(r2:Room)
+          RETURN r1.id AS source, r2.id AS target, c.viaDoor AS viaDoor, c.distance AS distance
+        `);
+        connections = connRes.records.map(r => ({
+          source: r.get('source'),
+          target: r.get('target'),
+          viaDoor: r.get('viaDoor'),
+          distance: r.get('distance')
+        }));
+      } catch (err) {
+        connections = inMemoryStore.connections;
+      }
+
+      const graph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'semantic');
+      const bimGraph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'bim');
+
       return {
         isConnected: true,
         source: 'neo4j',
@@ -130,20 +348,39 @@ async function getProjectState() {
         floors,
         walls,
         openings,
-        furniture
+        furniture,
+        adjacencies,
+        connections,
+        graph,
+        bimGraph
       };
     });
   }
 
   // In-Memory state
+  const rooms = Array.from(inMemoryStore.rooms.values());
+  const floors = Array.from(inMemoryStore.floors.values());
+  const walls = Array.from(inMemoryStore.walls.values());
+  const openings = Array.from(inMemoryStore.openings.values());
+  const furniture = Array.from(inMemoryStore.furniture.values());
+  const adjacencies = inMemoryStore.adjacencies || [];
+  const connections = inMemoryStore.connections || [];
+
+  const graph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'semantic');
+  const bimGraph = buildGraphTopology({ rooms, floors, walls, openings, furniture, adjacencies, connections }, 'bim');
+
   return {
     isConnected: false,
     source: 'in-memory',
-    rooms: Array.from(inMemoryStore.rooms.values()),
-    floors: Array.from(inMemoryStore.floors.values()),
-    walls: Array.from(inMemoryStore.walls.values()),
-    openings: Array.from(inMemoryStore.openings.values()),
-    furniture: Array.from(inMemoryStore.furniture.values())
+    rooms,
+    floors,
+    walls,
+    openings,
+    furniture,
+    adjacencies,
+    connections,
+    graph,
+    bimGraph
   };
 }
 
@@ -287,6 +524,52 @@ async function createRoom({
   return { room: roomData, floor: floorData, walls: wallsData };
 }
 
+// Persist shared boundary relationship between two rooms
+async function createAdjacency({ roomAId, roomBId, sharedLength = 0, axis = 'X' }) {
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run(`
+        MATCH (a:Room {id: $roomAId}), (b:Room {id: $roomBId})
+        MERGE (a)-[r:ADJACENT_TO]->(b)
+        SET r.sharedLength = $sharedLength, r.axis = $axis
+        MERGE (b)-[r2:ADJACENT_TO]->(a)
+        SET r2.sharedLength = $sharedLength, r2.axis = $axis
+      `, { roomAId, roomBId, sharedLength, axis });
+    });
+  }
+
+  inMemoryStore.adjacencies.push({
+    source: roomAId,
+    target: roomBId,
+    sharedLength,
+    axis
+  });
+  return { success: true };
+}
+
+// Persist doorway circulation connection between two rooms
+async function createConnection({ roomAId, roomBId, viaDoor = '', distance = 1.0 }) {
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run(`
+        MATCH (a:Room {id: $roomAId}), (b:Room {id: $roomBId})
+        MERGE (a)-[c:CONNECTS_TO]->(b)
+        SET c.viaDoor = $viaDoor, c.distance = $distance
+        MERGE (b)-[c2:CONNECTS_TO]->(a)
+        SET c2.viaDoor = $viaDoor, c2.distance = $distance
+      `, { roomAId, roomBId, viaDoor, distance });
+    });
+  }
+
+  inMemoryStore.connections.push({
+    source: roomAId,
+    target: roomBId,
+    viaDoor,
+    distance
+  });
+  return { success: true };
+}
+
 // Add an Opening (Door or Window) to a Wall
 async function createOpening({
   wallId,
@@ -294,7 +577,7 @@ async function createOpening({
   width = 0.9,
   height = 2.1,
   depth = 0.15,
-  offsetRatio = 0.5, // 0.0 to 1.0 along wall width
+  offsetRatio = 0.5,
   material = 'wood'
 }) {
   const openingId = uuidv4();
@@ -314,6 +597,14 @@ async function createOpening({
     throw new Error(`Wall with ID ${wallId} not found.`);
   }
 
+  const isVerticalWall = Math.abs((wall.rotationY || 0) - Math.PI / 2) < 0.2;
+  const shiftFromCenter = ((offsetRatio !== undefined ? offsetRatio : 0.5) - 0.5) * Math.max(0, (wall.width || 4) - width - 0.4);
+  const openX = isVerticalWall ? wall.x : Number((wall.x + shiftFromCenter).toFixed(2));
+  const openZ = isVerticalWall ? Number((wall.z + shiftFromCenter).toFixed(2)) : wall.z;
+  const openY = type === 'window'
+    ? Number(((wall.y - (wall.height / 2)) + 0.95 + (height / 2)).toFixed(2))
+    : Number(((wall.y - (wall.height / 2)) + (height / 2)).toFixed(2));
+
   const openingData = {
     id: openingId,
     wallId,
@@ -323,9 +614,9 @@ async function createOpening({
     depth,
     offsetRatio,
     material,
-    x: wall.x,
-    y: (wall.y - (wall.height / 2)) + (height / 2),
-    z: wall.z,
+    x: openX,
+    y: openY,
+    z: openZ,
     rotationY: wall.rotationY || 0
   };
 
@@ -352,10 +643,15 @@ async function createOpening({
   return openingData;
 }
 
-// Update Room Transform and Dimensions
+// Update Room Transform and Dimensions (Coupled propagation to child floor, walls, openings, and furniture)
 async function updateRoomTransform(id, { width, length, height, x, y, z }) {
   const room = inMemoryStore.rooms.get(id);
+  let dx = 0;
+  let dz = 0;
+
   if (room) {
+    const oldX = room.x || 0;
+    const oldZ = room.z || 0;
     if (width !== undefined) room.width = width;
     if (length !== undefined) room.length = length;
     if (height !== undefined) room.height = height;
@@ -363,6 +659,62 @@ async function updateRoomTransform(id, { width, length, height, x, y, z }) {
     if (y !== undefined) room.y = y;
     if (z !== undefined) room.z = z;
     room.area = Number(((room.width || 6) * (room.length || 6)).toFixed(2));
+
+    dx = (room.x || 0) - oldX;
+    dz = (room.z || 0) - oldZ;
+
+    // 1. Update coupled Floor
+    if (room.floor) {
+      room.floor.width = room.width;
+      room.floor.length = room.length;
+      room.floor.x = room.x;
+      room.floor.z = room.z;
+      inMemoryStore.floors.set(room.floor.id, room.floor);
+    }
+
+    // 2. Update coupled 4 Bounding Walls & any Openings hosted on them
+    if (Array.isArray(room.walls)) {
+      room.walls.forEach(w => {
+        if (w.position === 'front') {
+          w.width = room.width;
+          w.height = room.height;
+          w.x = room.x;
+          w.z = room.z + room.length / 2;
+        } else if (w.position === 'back') {
+          w.width = room.width;
+          w.height = room.height;
+          w.x = room.x;
+          w.z = room.z - room.length / 2;
+        } else if (w.position === 'left') {
+          w.width = room.length;
+          w.height = room.height;
+          w.x = room.x - room.width / 2;
+          w.z = room.z;
+        } else if (w.position === 'right') {
+          w.width = room.length;
+          w.height = room.height;
+          w.x = room.x + room.width / 2;
+          w.z = room.z;
+        }
+        inMemoryStore.walls.set(w.id, w);
+
+        // Coupled openings on this wall
+        for (const op of inMemoryStore.openings.values()) {
+          if (op.wallId === w.id) {
+            op.x = Number((op.x + dx).toFixed(2));
+            op.z = Number((op.z + dz).toFixed(2));
+          }
+        }
+      });
+    }
+
+    // 3. Translate Furniture inside this room
+    for (const fu of inMemoryStore.furniture.values()) {
+      if (fu.roomId === id) {
+        fu.x = Number((fu.x + dx).toFixed(2));
+        fu.z = Number((fu.z + dz).toFixed(2));
+      }
+    }
   }
 
   if (isConnected) {
@@ -377,19 +729,36 @@ async function updateRoomTransform(id, { width, length, height, x, y, z }) {
             r.y = COALESCE($y, r.y),
             r.z = COALESCE($z, r.z),
             r.area = toFloat(COALESCE($width, r.width)) * toFloat(COALESCE($length, r.length))
+        WITH r
+        OPTIONAL MATCH (r)-[:HAS_FLOOR]->(f:Floor)
+        SET f.width = r.width, f.length = r.length, f.x = r.x, f.z = r.z
+        WITH r
+        OPTIONAL MATCH (r)-[:CONTAINS_FURNITURE]->(fu:Furniture)
+        SET fu.x = fu.x + $dx, fu.z = fu.z + $dz
         `,
-        { id, width, length, height, x, y, z }
+        { id, width, length, height, x, y, z, dx, dz }
       );
     });
   }
   return room;
 }
 
+// Clear all furniture in project (Both Neo4j and In-Memory)
+async function clearFurniture() {
+  inMemoryStore.furniture.clear();
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run('MATCH (fu:Furniture) DETACH DELETE fu');
+    });
+  }
+  return { success: true };
+}
+
 // Add Furniture to Room
 async function createFurniture({
   roomId,
   name = 'Furniture',
-  type = 'sofa', // 'sofa' | 'bed' | 'table' | 'chair' | 'island' | 'plant' | 'rug'
+  type = 'sofa',
   width = 2.0,
   length = 1.0,
   height = 0.8,
@@ -398,7 +767,10 @@ async function createFurniture({
   z = 0,
   rotationY = 0,
   material = 'boucle',
-  style = 'japandi'
+  style = 'japandi',
+  skuId = null,
+  slot = null,
+  collection = null
 }) {
   const furnitureId = uuidv4();
   const fData = {
@@ -414,7 +786,10 @@ async function createFurniture({
     z,
     rotationY,
     material,
-    style
+    style,
+    skuId,
+    slot,
+    collection
   };
 
   if (isConnected) {
@@ -424,9 +799,13 @@ async function createFurniture({
         CREATE (fu:Furniture {
           id: $f.id, name: $f.name, type: $f.type, width: $f.width,
           length: $f.length, height: $f.height, x: $f.x, y: $f.y, z: $f.z,
-          rotationY: $f.rotationY, material: $f.material, style: $f.style
+          rotationY: $f.rotationY, material: $f.material, style: $f.style,
+          skuId: $f.skuId, slot: $f.slot, collection: $f.collection
         })
         CREATE (r)-[:CONTAINS_FURNITURE]->(fu)
+        WITH fu
+        OPTIONAL MATCH (p:Product {id: $f.skuId})
+        FOREACH (_ IN CASE WHEN p IS NULL THEN [] ELSE [1] END | MERGE (fu)-[:INSTANCE_OF]->(p))
       `, { roomId, f: fData });
     });
   }
@@ -435,31 +814,173 @@ async function createFurniture({
   return fData;
 }
 
-// Clear all nodes in project
+// Remove one placed piece (used when a single SKU is swapped).
+async function deleteFurniture(id) {
+  inMemoryStore.furniture.delete(id);
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run('MATCH (fu:Furniture {id: $id}) DETACH DELETE fu', { id });
+    });
+  }
+  return { success: true };
+}
+
+// Clear the room layout. Catalog products and shopper sessions are kept.
 async function clearAll() {
+  layoutResetCount++;
   inMemoryStore.rooms.clear();
   inMemoryStore.walls.clear();
   inMemoryStore.floors.clear();
   inMemoryStore.openings.clear();
   inMemoryStore.furniture.clear();
+  inMemoryStore.adjacencies = [];
+  inMemoryStore.connections = [];
 
   if (isConnected) {
     await withSession(async (session) => {
-      await session.run('MATCH (n) DETACH DELETE n');
+      await session.run(
+        'MATCH (n) WHERE none(label IN labels(n) WHERE label IN $preserved) DETACH DELETE n',
+        { preserved: PRESERVED_LABELS }
+      );
     });
   }
-  return { success: true, message: 'All spatial nodes and relationships cleared.' };
+  return { success: true, message: 'Room layout cleared. Catalog kept.' };
+}
+
+// --- CATALOG PRODUCT GRAPH ---
+
+function toPlainProduct(props, features) {
+  return {
+    id: props.id,
+    name: props.name,
+    role: props.role,
+    width: Number(props.width),
+    depth: Number(props.depth),
+    height: Number(props.height),
+    price: Number(props.price),
+    collection: props.collection,
+    style: props.style,
+    features: Array.isArray(features) ? features : (props.features || []),
+    reason: props.reason
+  };
+}
+
+// Upsert products: always into memory, and into Neo4j as (:Product)-[:IN_COLLECTION]->(:Collection) and -[:HAS_FEATURE]->(:Feature).
+async function upsertProducts(products = [], collections = []) {
+  products.forEach(p => inMemoryStore.products.set(p.id, { ...p, features: [...(p.features || [])] }));
+
+  if (isConnected) {
+    await withSession(async (session) => {
+      await session.run(
+        `UNWIND $collections AS c
+         MERGE (col:Collection {name: c.name})
+         SET col.style = c.style, col.note = c.note`,
+        { collections }
+      );
+      await session.run(
+        `UNWIND $products AS p
+         MERGE (prod:Product {id: p.id})
+         SET prod.name = p.name, prod.role = p.role, prod.width = p.width, prod.depth = p.depth,
+             prod.height = p.height, prod.price = p.price, prod.collection = p.collection,
+             prod.style = p.style, prod.features = p.features, prod.reason = p.reason
+         WITH prod, p
+         MERGE (col:Collection {name: p.collection})
+         MERGE (prod)-[:IN_COLLECTION]->(col)
+         WITH prod, p
+         UNWIND p.features AS featureName
+         MERGE (f:Feature {name: featureName})
+         MERGE (prod)-[:HAS_FEATURE]->(f)`,
+        { products }
+      );
+    });
+  }
+  return { success: true, count: products.length, persistedTo: isConnected ? 'neo4j' : 'in-memory' };
+}
+
+// Query products by role and price ceiling. Neo4j is the source when connected.
+async function queryProducts({ roles = null, maxPrice = null } = {}) {
+  if (isConnected) {
+    const rows = await withSession(async (session) => {
+      const res = await session.run(
+        `MATCH (p:Product)
+         WHERE ($roles IS NULL OR p.role IN $roles) AND ($maxPrice IS NULL OR p.price <= $maxPrice)
+         OPTIONAL MATCH (p)-[:HAS_FEATURE]->(f:Feature)
+         RETURN p, collect(f.name) AS features
+         ORDER BY p.price DESC`,
+        { roles, maxPrice: maxPrice === null ? null : Number(maxPrice) }
+      );
+      return res.records.map(r => toPlainProduct(r.get('p').properties, r.get('features')));
+    });
+    if (rows && rows.length > 0) return rows;
+  }
+
+  return Array.from(inMemoryStore.products.values())
+    .filter(p => !roles || roles.includes(p.role))
+    .filter(p => maxPrice === null || p.price <= maxPrice)
+    .sort((a, b) => b.price - a.price)
+    .map(p => ({ ...p, features: [...p.features] }));
+}
+
+async function getProduct(id) {
+  if (inMemoryStore.products.has(id)) {
+    const p = inMemoryStore.products.get(id);
+    return { ...p, features: [...p.features] };
+  }
+  const rows = await queryProducts({});
+  return rows.find(p => p.id === id) || null;
+}
+
+// --- SHOPPER SESSIONS ---
+
+async function saveShopperSession(session) {
+  const json = JSON.stringify(session);
+  inMemoryStore.sessions.set(session.id, json);
+  if (isConnected) {
+    await withSession(async (s) => {
+      await s.run(
+        'MERGE (ss:ShopperSession {id: $id}) SET ss.json = $json, ss.updatedAt = $updatedAt',
+        { id: session.id, json, updatedAt: session.updatedAt || new Date().toISOString() }
+      );
+    });
+  }
+  return { success: true };
+}
+
+async function loadShopperSession(id) {
+  if (!id) return null;
+  if (inMemoryStore.sessions.has(id)) return JSON.parse(inMemoryStore.sessions.get(id));
+  if (isConnected) {
+    const json = await withSession(async (s) => {
+      const res = await s.run('MATCH (ss:ShopperSession {id: $id}) RETURN ss.json AS json', { id });
+      return res.records[0] ? res.records[0].get('json') : null;
+    });
+    if (json) {
+      inMemoryStore.sessions.set(id, json);
+      return JSON.parse(json);
+    }
+  }
+  return null;
 }
 
 module.exports = {
   checkConnection,
+  saveShopperSession,
+  loadShopperSession,
   getProjectState,
   createRoom,
   createOpening,
   createFurniture,
+  deleteFurniture,
+  createAdjacency,
+  createConnection,
   updateRoomTransform,
+  clearFurniture,
   clearAll,
+  upsertProducts,
+  queryProducts,
+  getProduct,
   inMemoryStore,
+  getLayoutResetCount: () => layoutResetCount,
   getStatus: () => ({
     isConnected,
     uri,
@@ -468,7 +989,10 @@ module.exports = {
       walls: inMemoryStore.walls.size,
       floors: inMemoryStore.floors.size,
       openings: inMemoryStore.openings.size,
-      furniture: inMemoryStore.furniture.size
+      furniture: inMemoryStore.furniture.size,
+      products: inMemoryStore.products.size,
+      adjacencies: inMemoryStore.adjacencies.length,
+      connections: inMemoryStore.connections.length
     }
   })
 };
