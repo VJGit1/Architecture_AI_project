@@ -1,14 +1,14 @@
 {
   "name": "architecture-ai-project",
   "version": "1.0.0",
-  "description": "Autonomous Semantic BIM & 3D Architectural Co-Pilot with Three.js and Neo4j",
+  "description": "Shopper agent that fits a fictional catalog into a room, on a budget.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "eval": "node scripts/eval-shopper.js"
   },
-  "keywords": ["architecture", "threejs", "neo4j", "agentic-ai", "bim"],
+  "keywords": ["threejs", "neo4j", "express", "nodejs", "agentic-ai", "room-planner", "furniture", "interior-design", "catalog"],
   "author": "",
   "license": "ISC",
   "dependencies": {
